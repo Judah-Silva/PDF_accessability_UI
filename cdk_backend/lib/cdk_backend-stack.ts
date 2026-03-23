@@ -28,15 +28,15 @@ export class CdkBackendStack extends cdk.Stack {
     }
 
     // Import buckets independently
-    let pdfBucket: s3.IBucket | undefined;
-    let htmlBucket: s3.IBucket | undefined;
+    let pdfBucket: s3.IBucket | undefined = undefined;
+    let htmlBucket: s3.IBucket | undefined = undefined;
 
-    if (PDF_TO_PDF_BUCKET) {
+    if (PDF_TO_PDF_BUCKET != "Null") {
       pdfBucket = s3.Bucket.fromBucketName(this, 'PDFBucket', PDF_TO_PDF_BUCKET);
       console.log(`Using PDF-to-PDF bucket: ${pdfBucket.bucketName}`);
     }
 
-    if (PDF_TO_HTML_BUCKET) {
+    if (PDF_TO_HTML_BUCKET != "Null") {
       htmlBucket = s3.Bucket.fromBucketName(this, 'HTMLBucket', PDF_TO_HTML_BUCKET);
       console.log(`Using PDF-to-HTML bucket: ${htmlBucket.bucketName}`);
     }
