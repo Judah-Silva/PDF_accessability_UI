@@ -19,26 +19,28 @@ phases:
       - echo "Bootstrapping CDK (no approval)..."
       - |
         CDK_CONTEXT=""
-        if [ -n "${PDF_TO_PDF_BUCKET:-}" ]; then
+        if [ -n "${PDF_TO_PDF_BUCKET:-}" ] && [ "${PDF_TO_PDF_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_PDF_BUCKET=$PDF_TO_PDF_BUCKET"
         fi
-        if [ -n "${PDF_TO_HTML_BUCKET:-}" ]; then
+        if [ -n "${PDF_TO_HTML_BUCKET:-}" ] && [ "${PDF_TO_HTML_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_HTML_BUCKET=$PDF_TO_HTML_BUCKET"
         fi
         cdk deploy --all --require-approval never $CDK_CONTEXT
+
 
   build:
     commands:
       - echo "Deploying all CDK stacks..."
       - |
         CDK_CONTEXT=""
-        if [ -n "${PDF_TO_PDF_BUCKET:-}" ]; then
+        if [ -n "${PDF_TO_PDF_BUCKET:-}" ] && [ "${PDF_TO_PDF_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_PDF_BUCKET=$PDF_TO_PDF_BUCKET"
         fi
-        if [ -n "${PDF_TO_HTML_BUCKET:-}" ]; then
+        if [ -n "${PDF_TO_HTML_BUCKET:-}" ] && [ "${PDF_TO_HTML_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_HTML_BUCKET=$PDF_TO_HTML_BUCKET"
         fi
         cdk deploy --all --require-approval never $CDK_CONTEXT
+
 
   post_build:
     commands:
