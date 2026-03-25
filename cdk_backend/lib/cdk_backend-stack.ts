@@ -82,7 +82,7 @@ export class CdkBackendStack extends cdk.Stack {
       status: amplify.RedirectStatus.REWRITE
     }));
 
-    const domainPrefix = `pdf-ui-auth-${cdk.Names.uniqueId(this).slice(-8).toLowerCase()}`; // must be globally unique in that region
+    const domainPrefix = `pdf-ui-auth-${this.account}-${this.region}`; // must be globally unique in that region
     const Default_Group = 'DefaultUsers';
     const Amazon_Group = 'AmazonUsers';
     const Admin_Group = 'AdminUsers';

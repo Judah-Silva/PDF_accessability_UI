@@ -25,7 +25,7 @@ phases:
         if [ -n "${PDF_TO_HTML_BUCKET:-}" ] && [ "${PDF_TO_HTML_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_HTML_BUCKET=$PDF_TO_HTML_BUCKET"
         fi
-        cdk deploy --all --require-approval never $CDK_CONTEXT
+        cdk bootstrap --require-approval never $CDK_CONTEXT
 
 
   build:
