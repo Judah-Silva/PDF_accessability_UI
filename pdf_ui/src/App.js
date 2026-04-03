@@ -17,6 +17,7 @@ import LandingPage from './pages/LandingPage';
 import MainApp from './MainApp';
 import CallbackPage from './pages/CallbackPage'; 
 import MaintenancePage from './pages/MaintenancePage';
+import PreviewApp from './preview/PreviewApp';
 
 const cognitoAuthConfig = {
   authority: `https://${Authority}`,
@@ -72,6 +73,10 @@ function AppRoutes() {
 }
 
 function App() {
+  if (process.env.REACT_APP_PREVIEW_MODE === 'true') {
+    return <PreviewApp />;
+  }
+
   return (
     <AuthProvider {...cognitoAuthConfig}>
       <ThemeProvider theme={theme}>

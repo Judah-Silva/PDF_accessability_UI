@@ -1,9 +1,26 @@
-// Colors for your theme
-export const PRIMARY_MAIN = '#1976d2';  // Your primary color (blue)
-export const SECONDARY_MAIN = '#ff4081';  // Your secondary color (pink)
-export const CHAT_LEFT_PANEL_BACKGROUND = '#2c3e50';  // Background color for left panel
-export const HEADER_BACKGROUND = '#34495e';  // Background color for header
-export const primary_50 = '#e3f2fd';  // Lighter shade of primary color
+// Brand colors aligned to Hartnell's Bootstrap variables
+export const BLUE = '#4F9DF0';
+export const INDIGO = '#6610f2';
+export const PURPLE = '#A25581';
+export const PINK = '#e83e8c';
+export const RED = '#860038';
+export const ORANGE = '#F54F38';
+export const YELLOW = '#FFCC21';
+export const GREEN = '#019366';
+export const TEAL = '#15D48A';
+export const CYAN = '#43C3C6';
+export const WHITE = '#fff';
+export const GRAY = '#7D818B';
+export const GRAY_DARK = '#4C4E53';
+export const LIGHT = '#FAFBFB';
+export const DARK = '#48002E';
+export const DANGER = '#FF0000';
+
+export const PRIMARY_MAIN = RED;
+export const SECONDARY_MAIN = DARK;
+export const CHAT_LEFT_PANEL_BACKGROUND = LIGHT;
+export const HEADER_BACKGROUND = DARK;
+export const primary_50 = '#F8E6EF';
 
 export const isMaintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
@@ -76,4 +93,3 @@ export const UserPoolId = process.env.REACT_APP_USER_POOL_ID;
 
 // Preferably not use
 // export const HostedUserPoolDomain = process.env.REACT_APP_USER_POOL_DOMAIN;
-

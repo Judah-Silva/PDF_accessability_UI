@@ -1,10 +1,18 @@
 import { createTheme } from '@mui/material/styles';
 import {
+  BLUE,
   PRIMARY_MAIN,
   SECONDARY_MAIN,
   CHAT_LEFT_PANEL_BACKGROUND,
   HEADER_BACKGROUND,
-  primary_50
+  primary_50,
+  GREEN,
+  CYAN,
+  YELLOW,
+  DANGER,
+  LIGHT,
+  WHITE,
+  GRAY_DARK,
 } from './utilities/constants.jsx';  // Import constants
 
 const theme = createTheme({
@@ -18,7 +26,7 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: 'Lato, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
     h1: {
       fontSize: '2.5rem',
       '@media (max-width:600px)': {
@@ -76,10 +84,29 @@ const theme = createTheme({
     secondary: {
       main: SECONDARY_MAIN,
     },
+    success: {
+      main: GREEN,
+    },
+    info: {
+      main: CYAN,
+    },
+    warning: {
+      main: YELLOW,
+    },
+    error: {
+      main: DANGER,
+    },
     background: {
+      default: LIGHT,
+      paper: WHITE,
       chatLeftPanel: CHAT_LEFT_PANEL_BACKGROUND,
       header: HEADER_BACKGROUND,
     },
+    text: {
+      primary: GRAY_DARK,
+      secondary: SECONDARY_MAIN,
+    },
+    divider: BLUE,
   },
   components: {
     MuiButton: {

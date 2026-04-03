@@ -7,9 +7,6 @@ import {
   Box,
   Typography,
   Link,
-  List,
-  ListItem,
-  ListItemIcon,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -21,13 +18,10 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 // MUI Icons
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import CloseIcon from '@mui/icons-material/Close';
 
 // Images
-import asuLogo from '../assets/ASU_CIC_LOGO_WHITE.png';
 import gradientImg from '../assets/Gradient.svg';
-import awsLogo from '../assets/POWERED_BY_AWS.png';
 import bottomGradient from '../assets/bottom_gradient.svg';
 
 // Styled Components
@@ -52,21 +46,21 @@ const StyledEmailLink = styled(Link)(({ theme }) => ({
   },
 }));
 
-const SmallFiberManualRecordIcon = styled(FiberManualRecordIcon)(({ size }) => ({
-  fontSize: size || '8px',
-}));
-
 const GradientBox = styled(Box)(({ theme }) => ({
   backgroundImage: `url(${gradientImg})`,
   backgroundRepeat: 'no-repeat',
   backgroundPosition: 'center',
   backgroundSize: 'cover',
-  padding: theme.spacing(8),
+  padding: theme.spacing(5),
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: theme.spacing(1),
+  gap: theme.spacing(3),
+  width: '100%',
+  maxWidth: 560,
+  borderRadius: '1.5rem',
+  boxShadow: '0 18px 40px rgba(0, 0, 0, 0.25)',
 }));
 
 const LandingPage = () => {
@@ -156,106 +150,61 @@ const LandingPage = () => {
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'row',
+          flexDirection: 'column',
           backgroundColor: '#000',
           color: '#fff',
           minHeight: '65vh',
           alignItems: 'center',
-          pb: 4,
+          justifyContent: 'center',
+          pb: 6,
+          pt: 6,
           flexGrow: 1,
-          flexWrap: 'wrap',
+          px: 3,
+          textAlign: 'center',
         }}
       >
-        {/* Left Side: Text */}
         <Box
           sx={{
-            flex: 1,
-            padding: '0 4%',
+            width: '100%',
+            maxWidth: 860,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
-            alignItems: 'flex-start',
-            minWidth: '300px',
+            alignItems: 'center',
+            gap: 3,
           }}
         >
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 2 }}>
+          <Box
+            component="img"
+            src="/assets/hartnell-logo.svg"
+            alt="Hartnell College logo"
+            sx={{
+              width: '100%',
+              maxWidth: 320,
+              height: 'auto',
+            }}
+          />
+
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 'bold',
+              maxWidth: 680,
+            }}
+          >
             PDF Accessibility Remediation
           </Typography>
 
-          <Typography variant="h5" component="h2" sx={{ fontWeight: 'medium', mb: 2 }}>
-            About this solution:
-          </Typography>
-          <Typography variant="body1" component="h3" paragraph>
-            This solution was created by the Arizona State University Artificial
-            Intelligence Cloud Innovation Center (AI CIC), powered by Amazon Web
-            Services (AWS), to tackle a significant challenge in the digital era:
-            improving the accessibility of digital document collections.
-          </Typography>
-          <Typography variant="body1" component="h3" paragraph>
-            With the Department of Justice’s April 2024 updates to how the
-            Americans with Disabilities Act (ADA) will be regulated, the AI CIC
-            developed a scalable open‐source solution that quickly and
-            efficiently brings PDF documents into compliance with WCAG 2.1 Level
-            AA standards. For bulk processing, 10 pages would cost approximately
-            $0.013 for AWS service costs + Adobe API costs.
-          </Typography>
-          <Typography variant="body1" component="h3" paragraph>
-            To test out this open‐source solution,{' '}
-            <Box component="span" sx={{ color: '#FFC627', fontWeight: 'bold' }}>
-              click "Log In and Remediate My PDF"
-            </Box>{' '}
-            to briefly create an account, upload your document, and receive your
-            remediated PDF in return.
-          </Typography>
-
-          {/* Provided By Section */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              mt: 4,
-            }}
-          >
-            <Typography variant="body1" component="h3" sx={{ mr: 1, fontWeight: 'bold' }}>
-              Provided by:
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <img
-                src={asuLogo}
-                alt="ASU AI CIC Logo (white)"
-                style={{ height: 70, width: 'auto', marginRight: '16px' }}
-              />
-              <img
-                src={awsLogo}
-                alt="Powered by AWS logo (white)"
-                style={{ height: 40, width: 'auto' }}
-              />
-            </Box>
-          </Box>
-        </Box>
-
-        {/* Right Side: Gradient + Button + Link in the black area */}
-        <Box
-          sx={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column', // Column so the link can appear below the gradient box
-            justifyContent: 'center',
-            alignItems: 'center',
-            position: 'relative',
-            minWidth: '300px',
-          }}
-        >
-          {/* Gradient box with the button */}
           <GradientBox>
             <Typography
               variant="h5"
               component="h2"
               sx={{
-                mb: 4,
                 color: '#FFC627',
                 textAlign: 'center',
                 fontWeight: 'bold',
+                letterSpacing: '0.04em',
               }}
             >
               READY TO TRANSFORM YOUR PDF?
@@ -277,12 +226,12 @@ const LandingPage = () => {
                 backgroundColor: '#FFC627',
                 color: '#000',
                 fontWeight: 'bold',
-                fontSize: '1.2rem',
-                width: 350,
-                height: 50,
+                fontSize: '1rem',
+                padding: '1rem 1.375rem',
+                minWidth: 350,
                 overflow: 'hidden',
                 position: 'relative',
-                borderRadius: '25px',
+                borderRadius: '1.25rem',
                 transition: 'transform 0.2s, background-color 0.2s',
                 display: 'flex',
                 alignItems: 'center',
@@ -300,7 +249,6 @@ const LandingPage = () => {
             </LoadingButton>
           </GradientBox>
 
-          {/* Link placed outside the GradientBox but still in the black area */}
           <Box sx={{ mt: 2 }}>
             <StyledLink
               href="#"
@@ -335,68 +283,17 @@ const LandingPage = () => {
         <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
           Support resources:
         </Typography>
-        <List>
-          <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemIcon sx={{ minWidth: '24px' }}>
-              <SmallFiberManualRecordIcon size="12px" sx={{ color: '#000000' }} />
-            </ListItemIcon>
-            <Typography variant="body1" component="h3">
-            Want a personalized demo of this solution? Have questions about your customer setup?{' '}
-              <StyledLink
-                href="https://aws.amazon.com/government-education/contact/"
-                target="_blank"
-                rel="noopener"
-                sx={{ ml: 0.5 }}
-              >
-                Contact AWS
-              </StyledLink>
-            </Typography>
-          </ListItem>
-          <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemIcon sx={{ minWidth: '24px' }}>
-              <SmallFiberManualRecordIcon size="12px" sx={{ color: '#000000' }} />
-            </ListItemIcon>
-            <Typography variant="body1" component="h3">
-            Watch a recorded demo and review technical architecture:{' '}
-              <StyledLink
-                href="https://youtu.be/BFGN7tC1trA?si=uGGEifk22UrAR8fJ"
-                target="_blank"
-                rel="noopener"
-                sx={{ ml: 0.5 }}
-              >
-                Watch Demo
-              </StyledLink>
-            </Typography>
-          </ListItem>
-          <ListItem disablePadding sx={{ mb: 1 }}>
-            <ListItemIcon sx={{ minWidth: '24px' }}>
-              <SmallFiberManualRecordIcon size="12px" sx={{ color: '#000000' }} />
-            </ListItemIcon>
-            <Typography variant="body1" component="h3">
-              This solution is available open source and can be added to your
-              AWS account for usage and testing.
-              <StyledLink
-                href="https://github.com/ASUCICREPO/PDF_Accessibility"
-                target="_blank"
-                rel="noopener"
-                sx={{ ml: 0.5 }}
-              >
-                Review documentation and access the GitHub repo.
-              </StyledLink>
-            </Typography>
-          </ListItem>
-          <ListItem disablePadding>
-            <ListItemIcon sx={{ minWidth: '24px' }}>
-              <SmallFiberManualRecordIcon size="12px" sx={{ color: '#000000' }} />
-            </ListItemIcon>
-            <Typography variant="body1" component="h3">
-              Have questions about the AI CIC or need support? Email us:{' '}
-              <StyledEmailLink href="mailto:ai-cic@amazon.com">
-                ai-cic@amazon.com
-              </StyledEmailLink>
-            </Typography>
-          </ListItem>
-        </List>
+        <Typography variant="body1" component="p">
+          If you need assistance,{' '}
+          <StyledLink
+            href="https://www.hartnell.edu/forms/accessibility-feedback-form.html"
+            target="_blank"
+            rel="noopener"
+          >
+            please submit a help ticket in the Panther Portal
+          </StyledLink>
+          .
+        </Typography>
       </Box>
 
       {/* About the AI CIC Section */}
