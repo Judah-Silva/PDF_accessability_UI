@@ -21,8 +21,9 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import CloseIcon from '@mui/icons-material/Close';
 
 // Images
-import gradientImg from '../assets/Gradient.svg';
 import bottomGradient from '../assets/bottom_gradient.svg';
+import hartnellLogo from '../assets/hartnell-logo.svg';
+import { PRIMARY_MAIN } from '../utilities/constants';
 
 // Styled Components
 import { styled } from '@mui/system';
@@ -36,21 +37,8 @@ const StyledLink = styled(Link)(({ theme }) => ({
   },
 }));
 
-const StyledEmailLink = styled(Link)(({ theme }) => ({
-  color: '#8C1D40',
-  textDecoration: 'none',
-  component: 'a',
-  '&:hover': {
-    color: '#70122F',
-    textDecoration: 'underline',
-  },
-}));
-
 const GradientBox = styled(Box)(({ theme }) => ({
-  backgroundImage: `url(${gradientImg})`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'center',
-  backgroundSize: 'cover',
+  backgroundColor: PRIMARY_MAIN,
   padding: theme.spacing(5),
   display: 'flex',
   flexDirection: 'column',
@@ -64,7 +52,12 @@ const GradientBox = styled(Box)(({ theme }) => ({
 }));
 
 const LandingPage = () => {
-  const auth = useAuth();
+  const authContext = useAuth();
+  const auth = authContext ?? {
+    isLoading: false,
+    isAuthenticated: false,
+    signinRedirect: () => {},
+  };
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [openDialog, setOpenDialog] = useState(false);
@@ -77,6 +70,10 @@ const LandingPage = () => {
   }, [auth.isLoading, auth.isAuthenticated, navigate]);
 
   const handleSignIn = () => {
+    if (!authContext) {
+      return;
+    }
+
     setLoading(true);
     // Introduce a 1-second delay before redirecting
     setTimeout(() => {
@@ -119,10 +116,10 @@ const LandingPage = () => {
         flexDirection: 'column',
       }}
     >
-      {/* Top Black Bar */}
+      {/* Top Bar */}
       <Box
         sx={{
-          backgroundColor: '#000',
+          backgroundColor: '#fff',
           height: '36px',
           width: '100%',
           display: 'flex',
@@ -146,13 +143,13 @@ const LandingPage = () => {
         }}
       />
 
-      {/* Black Section with Main Content */}
+      {/* Hero Section */}
       <Box
         sx={{
           display: 'flex',
           flexDirection: 'column',
-          backgroundColor: '#000',
-          color: '#fff',
+          backgroundColor: '#fff',
+          color: '#48002E',
           minHeight: '65vh',
           alignItems: 'center',
           justifyContent: 'center',
@@ -176,7 +173,7 @@ const LandingPage = () => {
         >
           <Box
             component="img"
-            src="/assets/hartnell-logo.svg"
+            src={hartnellLogo}
             alt="Hartnell College logo"
             sx={{
               width: '100%',
@@ -256,7 +253,7 @@ const LandingPage = () => {
                 e.preventDefault();
                 handleOpenDialog();
               }}
-              sx={{ fontSize: '0.9rem', color: '#FFC627' }}
+              sx={{ fontSize: '0.9rem', color: '#860038' }}
             >
               Learn more about the remediation process
             </StyledLink>
@@ -278,12 +275,16 @@ const LandingPage = () => {
           p: 4,
           borderTop: '1px solid #ddd',
           borderBottom: '1px solid #ddd',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
         }}
       >
         <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
           Support resources:
         </Typography>
-        <Typography variant="body1" component="p">
+        <Typography variant="body1" component="p" sx={{ maxWidth: 680 }}>
           If you need assistance,{' '}
           <StyledLink
             href="https://www.hartnell.edu/forms/accessibility-feedback-form.html"
@@ -292,65 +293,6 @@ const LandingPage = () => {
           >
             please submit a help ticket in the Panther Portal
           </StyledLink>
-          .
-        </Typography>
-      </Box>
-
-      {/* About the AI CIC Section */}
-      <Box
-        sx={{
-          p: 4,
-          backgroundColor: '#FAFAFA',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <Box
-          sx={{
-            position: 'absolute',
-            top: '-20%',
-            left: '-10%',
-            width: '120%',
-            height: '150%',
-            backgroundImage: `url(${bottomGradient})`,
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'cover',
-            transform: 'rotate(-15deg)',
-            opacity: 0.2,
-            zIndex: -1,
-          }}
-        />
-        <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
-          About the AI CIC:
-        </Typography>
-        <Typography variant="body1" component="h3" paragraph>
-          The ASU Artificial Intelligence Cloud Innovation Center (AI CIC),
-          powered by AWS, is a no‐cost design thinking and rapid prototyping
-          shop dedicated to bridging the digital divide and driving innovation
-          in the nonprofit, healthcare, education, and government sectors.
-        </Typography>
-        <Typography variant="body1" component="h3" paragraph>
-          Our expert team harnesses Amazon’s pioneering approach to dive deep
-          into high-priority pain points, meticulously define challenges, and
-          craft strategic solutions. We collaborate with AWS solutions
-          architects and talented student workers to develop tailored
-          prototypes showcasing how advanced technology can tackle a wide
-          range of operational and mission-related challenges.
-        </Typography>
-        <Typography variant="body1" component="h3" paragraph>
-          Discover how we use technology to drive innovation. Visit our
-          website at{' '}
-          <StyledLink
-            href="https://smartchallenges.asu.edu/challenges/pdf-accessibility-ohio-state-university"
-            target="_blank"
-            rel="noopener"
-          >
-            AI CIC
-          </StyledLink>{' '}
-          or contact us directly at{' '}
-          <StyledEmailLink href="mailto:ai-cic@amazon.com">
-            ai-cic@amazon.com
-          </StyledEmailLink>
           .
         </Typography>
       </Box>

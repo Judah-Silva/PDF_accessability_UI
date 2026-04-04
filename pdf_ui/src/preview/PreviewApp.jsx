@@ -7,6 +7,7 @@ import LeftNav from '../components/LeftNav';
 import HeroSection from '../components/HeroSection';
 import InformationBlurb from '../components/InformationBlurb';
 import MaintenancePage from '../pages/MaintenancePage';
+import LandingPage from '../pages/LandingPage';
 import theme from '../theme';
 import './preview.css';
 import '../components/UploadSection.css';
@@ -14,7 +15,6 @@ import '../components/ProcessingContainer.css';
 import '../components/ResultsContainer.css';
 
 const previewRoutes = [
-  { path: '/preview/landing', label: 'Landing' },
   { path: '/preview/maintenance', label: 'Maintenance' },
   { path: '/preview/callback', label: 'Callback' },
   { path: '/preview/app/upload', label: 'App Upload' },
@@ -363,37 +363,41 @@ const previewSecondaryButtonSx = {
 
 function PreviewApp() {
   return (
-    <Routes>
-      <Route path="/preview" element={<PreviewIndex />} />
-      <Route path="/preview/landing" element={<PreviewLandingPage />} />
-      <Route path="/preview/maintenance" element={<MaintenancePage />} />
-      <Route path="/preview/callback" element={<PreviewCallbackPage />} />
-      <Route
-        path="/preview/app/upload"
-        element={
-          <PreviewChrome>
-            <PreviewUploadTemplate />
-          </PreviewChrome>
-        }
-      />
-      <Route
-        path="/preview/app/processing"
-        element={
-          <PreviewChrome>
-            <PreviewProcessingTemplate />
-          </PreviewChrome>
-        }
-      />
-      <Route
-        path="/preview/app/results"
-        element={
-          <PreviewChrome>
-            <PreviewResultsTemplate />
-          </PreviewChrome>
-        }
-      />
-      <Route path="*" element={<Navigate to="/preview" replace />} />
-    </Routes>
+    <ThemeProvider theme={theme}>
+      <Routes>
+        <Route path="/" element={<Navigate to="/home" replace />} />
+        <Route path="/preview" element={<PreviewIndex />} />
+        <Route path="/home" element={<LandingPage />} />
+        <Route path="/preview/landing" element={<PreviewLandingPage />} />
+        <Route path="/preview/maintenance" element={<MaintenancePage />} />
+        <Route path="/preview/callback" element={<PreviewCallbackPage />} />
+        <Route
+          path="/preview/app/upload"
+          element={
+            <PreviewChrome>
+              <PreviewUploadTemplate />
+            </PreviewChrome>
+          }
+        />
+        <Route
+          path="/preview/app/processing"
+          element={
+            <PreviewChrome>
+              <PreviewProcessingTemplate />
+            </PreviewChrome>
+          }
+        />
+        <Route
+          path="/preview/app/results"
+          element={
+            <PreviewChrome>
+              <PreviewResultsTemplate />
+            </PreviewChrome>
+          }
+        />
+        <Route path="*" element={<Navigate to="/home" replace />} />
+      </Routes>
+    </ThemeProvider>
   );
 }
 

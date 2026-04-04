@@ -19,7 +19,7 @@ const HeroSection = () => {
   };
 
   const heroTitleStyle = {
-    fontFamily: "'Geist', sans-serif",
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
     fontWeight: '600',
     fontSize: '28px',
     lineHeight: '36px',
@@ -29,7 +29,7 @@ const HeroSection = () => {
   };
 
   const heroDescriptionStyle = {
-    fontFamily: "'Geist', sans-serif",
+    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
     fontWeight: '400',
     fontSize: '20px',
     lineHeight: '30px',
