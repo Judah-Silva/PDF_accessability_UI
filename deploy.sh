@@ -5,8 +5,8 @@ set -euo pipefail
 # 1. Configure S3 buckets for PDF processing
 # --------------------------------------------------
 
-TIMESTAMP=$(date +%Y%m%d%H%M%S)
-PROJECT_NAME="pdf-ui-${TIMESTAMP}"
+# TIMESTAMP=$(date +%Y%m%d%H%M%S)
+PROJECT_NAME="pdf-ui-20260319180002"
 echo "Auto-generated project name: $PROJECT_NAME"
 
 # Configure S3 buckets (at least one required)
@@ -448,7 +448,7 @@ BACKEND_ENVIRONMENT="$BACKEND_ENVIRONMENT"'}'
 # Backend buildspec
 BACKEND_SOURCE='{
   "type":"GITHUB",
-  "location":"https://github.com/ASUCICREPO/PDF_accessability_UI.git",
+  "location":"https://github.com/Judah-Silva/PDF_accessability_UI.git",
   "buildspec":"buildspec.yml"
 }'
 

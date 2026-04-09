@@ -86,7 +86,7 @@ const InformationBlurb = () => {
             <Box 
               component="h3" 
               sx={{ 
-                fontFamily: "'Geist', sans-serif", 
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
                 fontWeight: 600, 
                 fontSize: { xs: '12px', sm: '14px' }, 
                 lineHeight: { xs: '16px', sm: '20px' }, 
@@ -99,7 +99,7 @@ const InformationBlurb = () => {
             <Box 
               component="p" 
               sx={{ 
-                fontFamily: "'Geist', sans-serif", 
+                fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif',
                 fontWeight: 400, 
                 fontSize: { xs: '11px', sm: '14px' }, 
                 lineHeight: { xs: '14px', sm: '20px' }, 
