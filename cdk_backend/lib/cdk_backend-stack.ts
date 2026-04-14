@@ -1,4 +1,3 @@
-import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -176,7 +175,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userAuthLambda = new lambda.Function(this, 'UserAuthLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userAuth/')),
+      code: lambda.Code.fromAsset('lambda/userAuth/'),
       timeout: cdk.Duration.seconds(30),
       role: userAuthLambdaRole,
       environment: {
@@ -210,7 +209,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userRefreshLambda = new lambda.Function(this, 'UserRefreshLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userRefresh/')),
+      code: lambda.Code.fromAsset('lambda/userRefresh/'),
       timeout: cdk.Duration.seconds(30),
       role: userRefreshLambdaRole,
       environment: {
@@ -238,7 +237,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userUploadLambda = new lambda.Function(this, 'UserUploadLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userUpload/')),
+      code: lambda.Code.fromAsset('lambda/userUpload/'),
       timeout: cdk.Duration.seconds(30),
       role: userUploadLambdaRole,
       environment: {
@@ -265,7 +264,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userDownloadLambda = new lambda.Function(this, 'UserDownloadLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userDownload/')),
+      code: lambda.Code.fromAsset('lambda/userDownload/'),
       timeout: cdk.Duration.seconds(30),
       role: userDownloadLambdaRole,
       environment: {
@@ -292,7 +291,7 @@ export class CdkBackendStack extends cdk.Stack {
     const fileStatusLambda = new lambda.Function(this, 'FileStatusLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/fileStatus/')),
+      code: lambda.Code.fromAsset('lambda/fileStatus/'),
       timeout: cdk.Duration.seconds(30),
       role: fileStatusLambdaRole,
       environment: {
