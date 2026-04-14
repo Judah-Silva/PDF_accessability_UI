@@ -1,5 +1,5 @@
 // src/components/AccessibilityChecker.js
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   Dialog,
@@ -23,17 +23,19 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-import {
-  S3Client,
-  HeadObjectCommand,
-  GetObjectCommand,
-} from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+// import {
+//   S3Client,
+//   HeadObjectCommand,
+//   GetObjectCommand,
+// } from '@aws-sdk/client-s3';
+// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-import { PDFBucket, region } from '../utilities/constants';
+// import { PDFBucket, region } from '../utilities/constants';
+import { useApiClient } from '../hooks/useApiClient';
 
-
+// PDF method only
 function AccessibilityChecker({ originalFileName, updatedFilename, awsCredentials, open, onClose }) {
+  const { downloadFile } = useApiClient();
 
   // Reports in JSON form
   const [beforeReport, setBeforeReport] = useState(null);
@@ -56,33 +58,41 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
   const desiredFilenameBefore = `COMPLIANT_${OriginalFileKeyWithoutExtension}_before_remediation_accessibility_report.json`;
   const desiredFilenameAfter = `COMPLIANT_${OriginalFileKeyWithoutExtension}_after_remediation_accessibility_report.json`;
 
-  const s3 = useMemo(() => {
-    if (!awsCredentials?.accessKeyId) {
-      console.warn('AWS credentials not available yet');
-      return null;
-    }
-    return new S3Client({
-      region,
-      credentials: {
-        accessKeyId: awsCredentials.accessKeyId,
-        secretAccessKey: awsCredentials.secretAccessKey,
-        sessionToken: awsCredentials.sessionToken,
-      },
-    });
-  }, [awsCredentials]);
+  // const s3 = useMemo(() => {
+  //   if (!awsCredentials?.accessKeyId) {
+  //     console.warn('AWS credentials not available yet');
+  //     return null;
+  //   }
+  //   return new S3Client({
+  //     region,
+  //     credentials: {
+  //       accessKeyId: awsCredentials.accessKeyId,
+  //       secretAccessKey: awsCredentials.secretAccessKey,
+  //       sessionToken: awsCredentials.sessionToken,
+  //     },
+  //   });
+  // }, [awsCredentials]);
 
   /**
    * Utility to fetch the JSON file from S3 (assuming it exists).
    */
-  const fetchJsonFromS3 = useCallback(async (key) => {
-    if (!s3) {
-      throw new Error('S3 client not initialized - check environment variables and AWS credentials');
+  const fetchJsonFromS3 = async (key) => {
+    // if (!s3) {
+    //   throw new Error('S3 client not initialized - check environment variables and AWS credentials');
+    // }
+    // await s3.send(new HeadObjectCommand({ Bucket: PDFBucket, Key: key }));
+    // const getObjRes = await s3.send(new GetObjectCommand({ Bucket: PDFBucket, Key: key }));
+    let url, json;
+    try {
+      url = await downloadFile(key, true);
+      const getObjRes = await fetch(url);
+      const bodyString = await getObjRes.Body.transformToString();
+      json = JSON.parse(bodyString);
+    } catch (err) {
+      throw err;
     }
-    await s3.send(new HeadObjectCommand({ Bucket: PDFBucket, Key: key }));
-    const getObjRes = await s3.send(new GetObjectCommand({ Bucket: PDFBucket, Key: key }));
-    const bodyString = await getObjRes.Body.transformToString();
-    return JSON.parse(bodyString);
-  }, [s3]);
+    return { json, url };
+  };
 
   /**
  * Generate a presigned URL to directly download the JSON report from S3 with a specified filename.
@@ -91,38 +101,38 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
  * @returns {Promise<string>} - The presigned URL.
  */
 
-const generatePresignedUrl = useCallback(async (key, filename) => {
-  if (!s3) {
-    throw new Error('S3 client not initialized - check environment variables and AWS credentials');
-  }
-  const command = new GetObjectCommand({
-    Bucket: PDFBucket,
-    Key: key,
-    ResponseContentDisposition: `attachment; filename="${filename}"`,
-  });
-  return await getSignedUrl(s3, command, { expiresIn: 30000 }); // 8.33 hour expiration
-}, [s3]);
+// const generatePresignedUrl = useCallback(async (key, filename) => {
+//   if (!s3) {
+//     throw new Error('S3 client not initialized - check environment variables and AWS credentials');
+//   }
+//   const command = new GetObjectCommand({
+//     Bucket: PDFBucket,
+//     Key: key,
+//     ResponseContentDisposition: `attachment; filename="${filename}"`,
+//   });
+//   return await getSignedUrl(s3, command, { expiresIn: 30000 }); // 8.33 hour expiration
+// }, [s3]);
 
   /**
    * Fetch the "before" report with retry mechanism
    */
   const fetchBeforeReport = useCallback(async (retries = 3) => {
     // Check if S3 client is available
-    if (!s3) {
-      console.error('Cannot fetch BEFORE report - S3 client not initialized');
-      return;
-    }
+    // if (!s3) {
+    //   console.error('Cannot fetch BEFORE report - S3 client not initialized');
+    //   return;
+    // }
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         // First fetch the JSON data
-        const data = await fetchJsonFromS3(beforeReportKey);
+        const { data, url } = await fetchJsonFromS3(beforeReportKey);
         setBeforeReport(data);
 
         // Then generate a presigned URL for that JSON file
         setIsBeforeUrlLoading(true);
-        const presignedUrl = await generatePresignedUrl(beforeReportKey, desiredFilenameBefore);
-        setBeforeReportUrl(presignedUrl);
+        // const presignedUrl = await generatePresignedUrl(beforeReportKey, desiredFilenameBefore);
+        setBeforeReportUrl(url);
         return; // Success, exit the retry loop
       } catch (error) {
         console.log(`Attempt ${attempt}/${retries} failed for BEFORE report:`, error.message);
@@ -136,28 +146,28 @@ const generatePresignedUrl = useCallback(async (key, filename) => {
         setIsBeforeUrlLoading(false);
       }
     }
-  }, [beforeReportKey, desiredFilenameBefore, fetchJsonFromS3, generatePresignedUrl, s3]);
+  }, [beforeReportKey, fetchJsonFromS3]);
 
   /**
    * Fetch the "after" report with retry mechanism
    */
   const fetchAfterReport = useCallback(async (retries = 3) => {
     // Check if S3 client is available
-    if (!s3) {
-      console.error('Cannot fetch AFTER report - S3 client not initialized');
-      return;
-    }
+    // if (!s3) {
+    //   console.error('Cannot fetch AFTER report - S3 client not initialized');
+    //   return;
+    // }
 
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         // Fetch the JSON data
-        const data = await fetchJsonFromS3(afterReportKey);
+        const { data, url } = await fetchJsonFromS3(afterReportKey);
         setAfterReport(data);
 
         // Generate a presigned URL for downloading the AFTER report
         setIsAfterUrlLoading(true);
-        const presignedUrl = await generatePresignedUrl(afterReportKey, desiredFilenameAfter);
-        setAfterReportUrl(presignedUrl);
+        // const presignedUrl = await generatePresignedUrl(afterReportKey, desiredFilenameAfter);
+        setAfterReportUrl(url);
 
         return; // Success, exit the retry loop
       } catch (error) {
@@ -172,7 +182,21 @@ const generatePresignedUrl = useCallback(async (key, filename) => {
         setIsAfterUrlLoading(false);
       }
     }
-  }, [afterReportKey, desiredFilenameAfter, fetchJsonFromS3, generatePresignedUrl, s3]);
+  }, [afterReportKey, fetchJsonFromS3]);
+
+  const downloadFromURL = async (url) => {
+    const res = await fetch(url);
+    const blob = await res.blob();
+
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = updatedFilename ?? originalFileName;
+    a.click();
+
+    // clean up the object URL after the download starts
+    URL.revokeObjectURL(blobUrl);
+  }
 
 
   /**
@@ -187,14 +211,12 @@ const generatePresignedUrl = useCallback(async (key, filename) => {
    * Fetch reports when dialog opens
    */
   useEffect(() => {
-    if (open && updatedFilename && s3) {
+    if (open && updatedFilename) {
       console.log('Dialog opened, fetching reports...');
       fetchBeforeReport();
       fetchAfterReport();
-    } else if (open && updatedFilename && !s3) {
-      console.error('Cannot fetch reports - S3 client not available');
     }
-  }, [open, updatedFilename, fetchBeforeReport, fetchAfterReport, s3]);
+  }, [open, updatedFilename, fetchBeforeReport, fetchAfterReport]);
 
   /**
    * Renders a summary table (Before/After) if available
@@ -334,7 +356,7 @@ const generatePresignedUrl = useCallback(async (key, filename) => {
             color="primary"
             size="small"
             disabled={!beforeReportUrl || isBeforeUrlLoading}
-            onClick={() => window.open(beforeReportUrl, '_blank')}
+            onClick={() => downloadFromURL(beforeReportUrl)}
             startIcon={isBeforeUrlLoading && <CircularProgress size={14} />}
             sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
@@ -347,7 +369,7 @@ const generatePresignedUrl = useCallback(async (key, filename) => {
             color="primary"
             size="small"
             disabled={!afterReportUrl || isAfterUrlLoading}
-            onClick={() => window.open(afterReportUrl, '_blank')}
+            onClick={() => downloadFromURL(beforeReportUrl)}
             startIcon={isAfterUrlLoading && <CircularProgress size={14} />}
             sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >

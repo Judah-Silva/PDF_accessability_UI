@@ -24,8 +24,8 @@ export const primary_50 = '#F8E6EF';
 
 export const isMaintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
-export const Authority = process.env.REACT_APP_AUTHORITY;
-export const region = process.env.REACT_APP_AWS_REGION;
+// export const Authority = process.env.REACT_APP_AUTHORITY;
+// export const region = process.env.REACT_APP_AWS_REGION;
 export const Bucket = process.env.REACT_APP_BUCKET_NAME;
 export const Bucket_Region = process.env.REACT_APP_BUCKET_REGION;
 
@@ -77,15 +77,15 @@ export const validateFormatBucket = (format) => {
   };
 };
 
-export const DomainPrefix = process.env.REACT_APP_DOMAIN_PREFIX;
+// export const DomainPrefix = process.env.REACT_APP_DOMAIN_PREFIX;
 export const HostedUIUrl = process.env.REACT_APP_HOSTED_UI_URL;
-export const IndentityPoolId = process.env.REACT_APP_IDENTITY_POOL_ID;
+// export const IndentityPoolId = process.env.REACT_APP_IDENTITY_POOL_ID;
 
-export const FirstSignInAPI = process.env.REACT_APP_UPDATE_FIRST_SIGN_IN;
-export const CheckAndIncrementQuota = process.env.REACT_APP_UPLOAD_QUOTA_API;
+// export const FirstSignInAPI = process.env.REACT_APP_UPDATE_FIRST_SIGN_IN;
+// export const CheckAndIncrementQuota = process.env.REACT_APP_UPLOAD_QUOTA_API;
 
-export const UserPoolClientId = process.env.REACT_APP_USER_POOL_CLIENT_ID;
-export const UserPoolId = process.env.REACT_APP_USER_POOL_ID;
+// export const UserPoolClientId = process.env.REACT_APP_USER_POOL_CLIENT_ID;
+// export const UserPoolId = process.env.REACT_APP_USER_POOL_ID;
 
 
 

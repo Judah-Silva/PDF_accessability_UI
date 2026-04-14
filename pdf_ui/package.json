@@ -21,9 +21,13 @@
     "react-country-state-city": "^1.1.8",
     "react-dom": "^19.0.0",
     "react-oidc-context": "^3.2.0",
+    "oidc-client-ts": "3.5.0",
     "react-router-dom": "^7.1.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4"
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "7.21.11"
   },
   "scripts": {
     "start": "react-scripts start",

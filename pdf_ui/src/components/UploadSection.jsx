@@ -1,15 +1,16 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from 'react-oidc-context'; // to get user sub if needed
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+// import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Snackbar, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { PDFDocument } from 'pdf-lib';
+import { useApiClient } from '../hooks/useApiClient';
 import imgFileQuestion from '../assets/pdf-question.svg';
 import imgFileText from '../assets/pdf-icon.svg';
 import imgCodeXml from '../assets/pdf-html.svg';
 import './UploadSection.css';
 
-import { region, PDFBucket, HTMLBucket, CheckAndIncrementQuota, validateBucketConfiguration, validateFormatBucket } from '../utilities/constants';
+import { PDFBucket, HTMLBucket, validateBucketConfiguration, validateFormatBucket } from '../utilities/constants';
 
 function sanitizeFilename(filename, format = 'pdf') {
   // Normalize the filename to decompose accented characters
@@ -48,6 +49,7 @@ function sanitizeFilename(filename, format = 'pdf') {
 
 function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFilesAllowed, maxPagesAllowed, maxSizeAllowedMB, onUsageRefresh, setUsageCount, isFileUploaded, onShowDeploymentPopup}) {
   const auth = useAuth();
+  const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -88,24 +90,24 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       setErrorMessage('Backend infrastructure not deployed. Please deploy the backend first.');
       setOpenSnackbar(true);
 
-      if (onShowDeploymentPopup) {
-        onShowDeploymentPopup(fullValidation);
-      }
+      // if (onShowDeploymentPopup) {
+      //   onShowDeploymentPopup(fullValidation);
+      // }
       return;
     }
 
     // If specific format bucket is missing, show deployment guidance but don't proceed
     if (formatValidation.needsDeployment) {
       // Show deployment popup with specific format guidance
-      if (onShowDeploymentPopup) {
-        const formatSpecificValidation = {
-          ...fullValidation,
-          needsFullDeployment: false,
-          specificFormat: format,
-          specificBucket: formatValidation.bucketType
-        };
-        onShowDeploymentPopup(formatSpecificValidation);
-      }
+      // if (onShowDeploymentPopup) {
+      //   const formatSpecificValidation = {
+      //     ...fullValidation,
+      //     needsFullDeployment: false,
+      //     specificFormat: format,
+      //     specificBucket: formatValidation.bucketType
+      //   };
+      //   onShowDeploymentPopup(formatSpecificValidation);
+      // }
       return;
     }
 
@@ -129,25 +131,25 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       return;
     }
 
-    if (file.size > maxSizeAllowedMB * 1024 * 1024) {
-      setErrorMessage(`File size exceeds the ${maxSizeAllowedMB} MB limit.`);
-      setOpenSnackbar(true);
-      resetFileInput();
-      return;
-    }
+    // if (file.size > maxSizeAllowedMB * 1024 * 1024) {
+    //   setErrorMessage(`File size exceeds the ${maxSizeAllowedMB} MB limit.`);
+    //   setOpenSnackbar(true);
+    //   resetFileInput();
+    //   return;
+    // }
 
     // **2. Page Count Check with pdf-lib**
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const pdfDoc = await PDFDocument.load(arrayBuffer);
-      const numPages = pdfDoc.getPageCount();
+      // const pdfDoc = await PDFDocument.load(arrayBuffer);
+      // const numPages = pdfDoc.getPageCount();
 
-      if (numPages > maxPagesAllowed) {
-        setErrorMessage(`PDF file cannot exceed ${maxPagesAllowed} pages.`);
-        setOpenSnackbar(true);
-        resetFileInput();
-        return;
-      }
+      // if (numPages > maxPagesAllowed) {
+      //   setErrorMessage(`PDF file cannot exceed ${maxPagesAllowed} pages.`);
+      //   setOpenSnackbar(true);
+      //   resetFileInput();
+      //   return;
+      // }
 
       setSelectedFile(file);
       console.log('File object details:', {
@@ -192,11 +194,11 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
     }
 
     // **2. Check if user has reached the upload limit**
-    if (currentUsage >= maxFilesAllowed) {
-      setErrorMessage('You have reached your upload limit. Please contact support for further assistance.');
-      setOpenSnackbar(true);
-      return;
-    }
+    // if (currentUsage >= maxFilesAllowed) {
+    //   setErrorMessage('You have reached your upload limit. Please contact support for further assistance.');
+    //   setOpenSnackbar(true);
+    //   return;
+    // }
 
     // **3. Basic Guards**
     if (!file) {
@@ -204,11 +206,11 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       setOpenSnackbar(true);
       return;
     }
-    if (!awsCredentials) {
-      setErrorMessage('AWS credentials not available yet. Please wait...');
-      setOpenSnackbar(true);
-      return;
-    }
+    // if (!awsCredentials) {
+    //   setErrorMessage('AWS credentials not available yet. Please wait...');
+    //   setOpenSnackbar(true);
+    //   return;
+    // }
 
     // **3. Attempt to Increment Usage First**
     const userSub = auth.user?.profile?.sub;
@@ -217,73 +219,42 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       setOpenSnackbar(true);
       return;
     }
-    const idToken = auth.user?.id_token;
+    // const idToken = auth.user?.id_token;
     setIsUploading(true);
 
     try {
-      // **4. Call the Usage API to Increment**
-      const usageRes = await fetch(CheckAndIncrementQuota, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          sub: userSub,
-          mode: 'increment',
-          conversionType: selectedFormat
-        }),
-      });
-
-      if (!usageRes.ok) {
-        // e.g., 403 if user at limit, or other error
-        const errData = await usageRes.json();
-
-        // **Dynamic Error Message Based on Status Code**
-        const quotaExceeded = usageRes.status === 403; // Assuming 403 indicates quota limit
-        const message = quotaExceeded
-          ? 'You have reached the upload limit. Please contact support for further assistance.'
-          : errData.message || 'An error occurred while checking your upload quota. Please try again later.';
-
-        setErrorMessage(message);
-        setOpenSnackbar(true);
-        setIsUploading(false);
-        return;
-      }
-      
-      const usageData = await usageRes.json();
-      const updatedUsage = usageData.newCount; // Updated usage count from the backend
-      setUsageCount(updatedUsage);
-      
-      // **5. Proceed with S3 Upload**
-      const client = new S3Client({
-        region,
-        credentials: {
-          accessKeyId: awsCredentials.accessKeyId,
-          secretAccessKey: awsCredentials.secretAccessKey,
-          sessionToken: awsCredentials.sessionToken,
-        },
-      });
-
       const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, ''); // YYYYMMDDTHHMMSS format
-      const userEmail = auth.user?.profile?.email || 'user'; // Use email for unique filename, fallback to 'user'
+      const userEmail = auth.user?.profile?.email || 'unkown-user'; // Use email for unique filename, fallback to 'user'
       const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumerics with underscores
       const sanitizedFileName = sanitizeFilename(file.name, selectedFormat) || 'default.pdf'; // Fallback to 'default.pdf' if sanitization fails
       const uniqueFilename = `${sanitizedEmail}_${timestamp}_${sanitizedFileName}`; // Combined unique filename
 
       // Select bucket and directory based on format
-      const selectedBucket = selectedFormat === 'html' ? HTMLBucket : PDFBucket;
-      const keyPrefix = selectedFormat === 'html' ? 'uploads/' : 'pdf/';
+      // const selectedBucket = selectedFormat === 'html' ? HTMLBucket : PDFBucket;
+      // const keyPrefix = selectedFormat === 'html' ? 'uploads/' : 'pdf/';
 
+      const { uploadUrl } = await apiFetch('/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          fileName: uniqueFilename,
+          fileType: file.type,
+          fileSize: file.size,
+          remediationType: selectedFormat === 'html' ? 'pdf2html' : 'pdf2pdf',
+        }),
+      });
 
-      const params = {
-        Bucket: selectedBucket,
-        Key: `${keyPrefix}${uniqueFilename}`,
-        Body: file,
-      };
+      const upload = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/pdf'},
+        body: file,
+      })
 
-      const command = new PutObjectCommand(params);
-      await client.send(command);
+      if (!upload.ok) {
+        throw new Error('S3 upload failed.')
+      }
+
+      // const command = new PutObjectCommand(params);
+      // await client.send(command);
 
       console.log('Upload complete, new file name:', uniqueFilename);
 
@@ -291,13 +262,13 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       onUploadComplete(uniqueFilename, sanitizedFileName, selectedFormat || 'pdf');
 
       // **7. Refresh Usage**
-      if (onUsageRefresh) {
-        onUsageRefresh();
-      }
+      // if (onUsageRefresh) {
+      //   onUsageRefresh();
+      // }
 
       // **8. Don't reset automatically - let parent component handle flow**
     } catch (error) {
-      console.error('Error uploading file:', error);
+      console.error('Error uploading file.');
       setErrorMessage('Error uploading file. Please try again.');
       setOpenSnackbar(true);
     } finally {

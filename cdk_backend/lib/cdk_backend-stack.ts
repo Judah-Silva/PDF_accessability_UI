@@ -4,13 +4,9 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as cognito from 'aws-cdk-lib/aws-cognito';
+import * as dynamo from 'aws-cdk-lib/aws-dynamodb'
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-
-import * as events from 'aws-cdk-lib/aws-events';
-import * as targets from 'aws-cdk-lib/aws-events-targets';
-import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
 import * as cr from 'aws-cdk-lib/custom-resources';
 
 export class CdkBackendStack extends cdk.Stack {
@@ -31,12 +27,12 @@ export class CdkBackendStack extends cdk.Stack {
     let pdfBucket: s3.IBucket | undefined = undefined;
     let htmlBucket: s3.IBucket | undefined = undefined;
 
-    if (PDF_TO_PDF_BUCKET != "Null") {
+    if (PDF_TO_PDF_BUCKET) {
       pdfBucket = s3.Bucket.fromBucketName(this, 'PDFBucket', PDF_TO_PDF_BUCKET);
       console.log(`Using PDF-to-PDF bucket: ${pdfBucket.bucketName}`);
     }
 
-    if (PDF_TO_HTML_BUCKET != "Null") {
+    if (PDF_TO_HTML_BUCKET) {
       htmlBucket = s3.Bucket.fromBucketName(this, 'HTMLBucket', PDF_TO_HTML_BUCKET);
       console.log(`Using PDF-to-HTML bucket: ${htmlBucket.bucketName}`);
     }
@@ -83,9 +79,9 @@ export class CdkBackendStack extends cdk.Stack {
     }));
 
     const domainPrefix = `pdf-ui-auth-${this.account}-${this.region}`; // must be globally unique in that region
-    const Default_Group = 'DefaultUsers';
-    const Amazon_Group = 'AmazonUsers';
-    const Admin_Group = 'AdminUsers';
+    // const Default_Group = 'DefaultUsers';
+    // const Amazon_Group = 'AmazonUsers';
+    // const Admin_Group = 'AdminUsers';
     const appUrl = `https://main.${amplifyApp.appId}.amplifyapp.com`;
 
     // --------- Set CORS on imported S3 buckets via custom resource ----------
@@ -160,297 +156,231 @@ export class CdkBackendStack extends cdk.Stack {
       });
       console.log(`CORS configured for HTML bucket: ${htmlBucket.bucketName}`);
     }
-    
+
+    const dynamoStateTable = 'UserStateTable';
+    const dynamoRefreshTable = 'UserRefreshTable';
+
+    // ------------------- Lambda: UserAuth, UserRefresh, UserUpload -------------------
+
     // Create the Lambda role first with necessary permissions
-    const postConfirmationLambdaRole = new iam.Role(this, 'PostConfirmationLambdaRole', {
+    const userAuthLambdaRole = new iam.Role(this, 'UserAuthLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
     });
 
     // Grant CloudWatch Logs permissions
-    postConfirmationLambdaRole.addManagedPolicy(
+    userAuthLambdaRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
-    // NOTE: Cognito permissions are attached via CfnPolicy after user pool creation
-    // to scope to exact ARN while avoiding circular dependency (see below)
-
+    
     // Create the Lambda with the role
-    const postConfirmationFn = new lambda.Function(this, 'PostConfirmationLambda', {
-      runtime: lambda.Runtime.PYTHON_3_12,
+    const userAuthLambda = new lambda.Function(this, 'UserAuthLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/postConfirmation/'),
+      code: lambda.Code.fromAsset('lambda/userAuth/'),
       timeout: cdk.Duration.seconds(30),
-      role: postConfirmationLambdaRole,
+      role: userAuthLambdaRole,
       environment: {
-        DEFAULT_GROUP_NAME: Default_Group,
-        AMAZON_GROUP_NAME: Amazon_Group,
-        ADMIN_GROUP_NAME: Admin_Group,
-      },
-    });
+        FRONTEND_ORIGIN: appUrl,
+        DYNAMO_STATE_TABLE: dynamoStateTable,
+        DYNAMO_REFRESH_TABLE: dynamoRefreshTable,
+        DUO_CLIENT_ID: "",
+        DUO_CLIENT_SECRET: "",
+        DUO_API_HOST: "",
+        DUO_REDIRECT_URL: "",
+        JWT_PUBLIC_KEY: "",
+        JWT_PRIVATE_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
+      }
+    })
 
-    // ------------------- Cognito: User Pool, Domain, Client -------------------
-    const userPool = new cognito.UserPool(this, 'PDF-Accessability-User-Pool', {
-      userPoolName: 'PDF-Accessability-User-Pool',
-      selfSignUpEnabled: true,
-      signInAliases: { email: true },
-
-      autoVerify: { email: true },
-      passwordPolicy: {
-        minLength: 8,
-        requireLowercase: true,
-        requireDigits: true,
-        requireSymbols: false,
-        requireUppercase: false,
-      },
-      standardAttributes: {
-        email: { required: true, mutable: true },
-        givenName: { required: true, mutable: true },
-        familyName: { required: true, mutable: true },
-
-      },
-      customAttributes: {
-        first_sign_in: new cognito.BooleanAttribute({ mutable: true }),
-        total_files_uploaded: new cognito.NumberAttribute({ mutable: true }),
-        max_files_allowed: new cognito.NumberAttribute({ mutable: true }),
-        max_pages_allowed: new cognito.NumberAttribute({ mutable: true }),
-        max_size_allowed_MB: new cognito.NumberAttribute({ mutable: true }),
-        organization: new cognito.StringAttribute({ mutable: true }),
-        country: new cognito.StringAttribute({ mutable: true }),
-        state: new cognito.StringAttribute({ mutable: true }),
-        city: new cognito.StringAttribute({ mutable: true }),
-        pdf2pdf: new cognito.NumberAttribute({ mutable: true }),
-        pdf2html: new cognito.NumberAttribute({ mutable: true }),
-      },
-      accountRecovery: cognito.AccountRecovery.EMAIL_ONLY,
-      lambdaTriggers: {
-        postConfirmation: postConfirmationFn,
-      },
-    });
-
-    // --------- Scoped Cognito policies via L1 CfnPolicy (avoids circular dependency) ----------
-    // Using CfnPolicy directly so CDK doesn't auto-add it as a Lambda dependency,
-    // which would create a circular dep: Role Policy → UserPool → Lambda → Role
-    new iam.CfnPolicy(this, 'PostConfirmationCognitoPolicy', {
-      policyName: 'PostConfirmationCognitoAccess',
-      policyDocument: {
-        Version: '2012-10-17',
-        Statement: [{
-          Effect: 'Allow',
-          Action: [
-            'cognito-idp:AdminUpdateUserAttributes',
-            'cognito-idp:AdminAddUserToGroup',
-          ],
-          Resource: userPool.userPoolArn,
-        }],
-      },
-      roles: [postConfirmationLambdaRole.roleName],
-    });
+    console.log(`Created UserAuthLambda: ${userAuthLambda.functionName}`);
     
-    // ------------------- Cognito: User Groups -------------------
-      const defaultUsersGroup = new cognito.CfnUserPoolGroup(this, 'Default_Group', {
-        groupName: Default_Group,
-        userPoolId: userPool.userPoolId,
-        description: 'Group for default or normal users',
-        precedence: 1, // Determines the priority of the group
-      });
-
-      // Amazon Users Group
-      const amazonUsersGroup = new cognito.CfnUserPoolGroup(this, 'AmazonUsersGroup', {
-        groupName: Amazon_Group,
-        userPoolId: userPool.userPoolId,
-        description: 'Group for Amazon Employees',
-        precedence: 2,
-      });
-
-      // Admin Users Group
-      const adminUsersGroup = new cognito.CfnUserPoolGroup(this, 'AdminUsersGroup', {
-        groupName: Admin_Group,
-        userPoolId: userPool.userPoolId,
-        description: 'Group for admin users with elevated permissions',
-        precedence: 0, // Higher precedence means higher priority
-      });
-
-    // Domain prefix is defined above with appUrl
-    const userPoolDomain = new cognito.CfnUserPoolDomain(this, 'PDF-Accessability-User-Pool-Domain', {
-      domain: domainPrefix,
-      userPoolId: userPool.userPoolId,
-      managedLoginVersion: 2,
-    });
-
-    const userPoolClient = userPool.addClient('PDF-Accessability-User-Pool-Client', {
-      userPoolClientName: 'PDF-Accessability-User-Pool-Client',
-      authFlows: {
-        userSrp: true,
-        userPassword: true,
-        adminUserPassword: true
-      },
-      oAuth: {
-        flows: {
-          authorizationCodeGrant: true,
-          implicitCodeGrant: true
-        },
-        scopes: [
-          cognito.OAuthScope.OPENID,
-          cognito.OAuthScope.EMAIL,
-          cognito.OAuthScope.PHONE,
-          cognito.OAuthScope.PROFILE
-        ],
-        callbackUrls: [`${appUrl}/callback`,"http://localhost:3000/callback"],
-        logoutUrls: [`${appUrl}/home`, "http://localhost:3000/home"],
-      },
-      generateSecret: false,
-      preventUserExistenceErrors: true,
-      supportedIdentityProviders: [
-        cognito.UserPoolClientIdentityProvider.COGNITO,
-      ]
-    });
-
-    
-
-    // (Optional) If CfnManagedLoginBranding is not critical, remove it or put it in a separate stack
-    const managed_login = new cognito.CfnManagedLoginBranding(this, 'MyManagedLoginBranding', {
-      userPoolId: userPool.userPoolId,
-      clientId: userPoolClient.userPoolClientId,
-      returnMergedResources: true,
-      useCognitoProvidedValues: true,
-      
-    });
-
-    // ------------- Identity Pool + IAM Roles for S3 Access --------------------
-    const identityPool = new cognito.CfnIdentityPool(this, 'PDFIdentityPool', {
-      allowUnauthenticatedIdentities: false,
-      cognitoIdentityProviders: [
-        {
-          clientId: userPoolClient.userPoolClientId,
-          providerName: userPool.userPoolProviderName,
-        },
-      ],
-    });
-
-    const authenticatedRole = new iam.Role(this, 'CognitoDefaultAuthenticatedRole', {
-      assumedBy: new iam.FederatedPrincipal(
-        'cognito-identity.amazonaws.com',
-        {
-          StringEquals: { 'cognito-identity.amazonaws.com:aud': identityPool.ref },
-          'ForAnyValue:StringLike': { 'cognito-identity.amazonaws.com:amr': 'authenticated' },
-        },
-        'sts:AssumeRoleWithWebIdentity',
-      ),
-    });
-
-    // Create S3 policy for both buckets
-    const s3Resources: string[] = [];
-    if (pdfBucket) {
-      s3Resources.push(pdfBucket.bucketArn + '/*');
-    }
-    if (htmlBucket) {
-      s3Resources.push(htmlBucket.bucketArn + '/*');
-    }
-
-    authenticatedRole.addToPolicy(
-      new iam.PolicyStatement({
-        effect: iam.Effect.ALLOW,
-        actions: [
-          's3:PutObject',
-          's3:PutObjectAcl',
-          's3:GetObject',
-        ],
-        resources: s3Resources,
-      }),
-    );
-
-    new cognito.CfnIdentityPoolRoleAttachment(this, 'IdentityPoolRoleAttachment', {
-      identityPoolId: identityPool.ref,
-      roles: {
-        authenticated: authenticatedRole.roleArn,
-      },
-    });
-
-
-
-    // ------------------- Lambda Function for Post Confirmation -------------------
-    const updateAttributesFn = new lambda.Function(this, 'UpdateAttributesFn', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/updateAttributes/'),
-      timeout: cdk.Duration.seconds(30),
-      role: postConfirmationLambdaRole,
-      environment: {
-        USER_POOL_ID: userPool.userPoolId, // used in index.py
-      },
-    });
-
-    const checkUploadQuotaLambdaRole = new iam.Role(this, 'CheckUploadQuotaLambdaRole', {
+    // Create the Lambda role first with necessary permissions
+    const userRefreshLambdaRole = new iam.Role(this, 'UserRefreshLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
     });
-
-    // Grant CloudWatch Logs via managed policy
-    checkUploadQuotaLambdaRole.addManagedPolicy(
+    
+    // Grant CloudWatch Logs permissions
+    userRefreshLambdaRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
-    // NOTE: Cognito permissions are attached via CfnPolicy after user pool creation
-    // to scope to exact ARN while avoiding circular dependency (see below)
-
-    // 3) Create the Lambda function
-    const checkOrIncrementQuotaFn = new lambda.Function(this, 'checkOrIncrementQuotaFn', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      code: lambda.Code.fromAsset('lambda/checkOrIncrementQuota'),  
+    
+    // Create the Lambda with the role
+    const userRefreshLambda = new lambda.Function(this, 'UserRefreshLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/userRefresh/'),
       timeout: cdk.Duration.seconds(30),
-      role: checkUploadQuotaLambdaRole,
+      role: userRefreshLambdaRole,
       environment: {
-        USER_POOL_ID: userPool.userPoolId  
+        DYNAMO_STATE_TABLE: dynamoStateTable,
+        DYNAMO_REFRESH_TABLE: dynamoRefreshTable,
+        JWT_PUBLIC_KEY: "",
+        JWT_PRIVATE_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
       }
+    })
+
+    console.log(`Created UserRefreshLambda: ${userRefreshLambda.functionName}`);
+    
+    const userUploadLambdaRole = new iam.Role(this, 'UserUploadLambdaRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+    })
+    
+    // Grant CloudWatch Logs permissions
+    userUploadLambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+    
+    // Create the Lambda with the role
+    const userUploadLambda = new lambda.Function(this, 'UserUploadLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/userUpload/'),
+      timeout: cdk.Duration.seconds(30),
+      role: userUploadLambdaRole,
+      environment: {
+        PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
+        PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        JWT_PUBLIC_KEY: "",
+        JWT_PRIVATE_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
+      }
+    })
+
+    console.log(`Created UserUploadLambda: ${userUploadLambda.functionName}`);
+    
+    const userDownloadLambdaRole = new iam.Role(this, 'UserDownloadLambdaRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+    })
+    
+    // Grant CloudWatch Logs permissions
+    userDownloadLambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+    
+    // Create the Lambda with the role
+    const userDownloadLambda = new lambda.Function(this, 'UserDownloadLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/userDownload/'),
+      timeout: cdk.Duration.seconds(30),
+      role: userDownloadLambdaRole,
+      environment: {
+        PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
+        PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        JWT_PUBLIC_KEY: "",
+        JWT_PRIVATE_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
+      }
+    })
+
+    console.log(`Created UserDownloadLambda: ${userDownloadLambda.functionName}`);
+
+    //  ------------------- DynamoDB: StateTable, RefreshTable -------------------
+    const stateTable = new dynamo.TableV2(this, 'UserStateTable', {
+      tableName: 'UserStateTable',
+      partitionKey: { name: 'state', type: dynamo.AttributeType.STRING },
+      billing: dynamo.Billing.onDemand(),
+      timeToLiveAttribute: 'ttl',
     });
 
-    // Scoped Cognito policy via L1 CfnPolicy (avoids circular dependency)
-    new iam.CfnPolicy(this, 'CheckUploadQuotaCognitoPolicy', {
-      policyName: 'CheckUploadQuotaCognitoAccess',
-      policyDocument: {
-        Version: '2012-10-17',
-        Statement: [{
-          Effect: 'Allow',
-          Action: [
-            'cognito-idp:AdminGetUser',
-            'cognito-idp:AdminUpdateUserAttributes',
-          ],
-          Resource: userPool.userPoolArn,
-        }],
-      },
-      roles: [checkUploadQuotaLambdaRole.roleName],
+    console.log(`Created DynamoDB StateTable: ${stateTable.tableName}`);
+    
+    const refreshTable = new dynamo.TableV2(this, 'UserRefreshTable', {
+      tableName: 'UserRefreshTable',
+      partitionKey: { name: 'tokenHash', type: dynamo.AttributeType.STRING },
+      billing: dynamo.Billing.onDemand(),
+      timeToLiveAttribute: 'ttl',
     });
 
-    const updateAttributesApi = new apigateway.RestApi(this, 'UpdateAttributesApi', {
-      restApiName: 'UpdateAttributesApi',
-      description: 'API to update Cognito user attributes (org, first_sign_in,country, state, city, total_file_uploaded).',
+    console.log(`Created DynamoDB RefreshTable: ${refreshTable.tableName}`);
+
+    stateTable.grantReadWriteData(userAuthLambda);
+    stateTable.grantReadWriteData(userRefreshLambda);
+
+    refreshTable.grantReadWriteData(userAuthLambda);
+    refreshTable.grantReadWriteData(userRefreshLambda);
+
+    // Create S3 policy for both buckets
+    if (pdfBucket) {
+      pdfBucket.grantPut(userUploadLambda)
+      pdfBucket.grantRead(userDownloadLambda)
+      console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`)
+    }
+    if (htmlBucket) {
+      htmlBucket.grantPut(userUploadLambda)
+      htmlBucket.grantRead(userDownloadLambda)
+      console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`)
+    }
+
+    // ------------------- Lambda Function API Gateways -------------------
+   
+    //  Create API Gateway for lambda functions
+    const pdfRemediationAPI = new apigateway.RestApi(this, 'PdfRemediationAPI', {
+      restApiName: 'PdfRemediationAPI',
+      description: 'API for authentication and file upload signing lambdas.',
+      endpointTypes: [apigateway.EndpointType.REGIONAL],
       defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowOrigins: [appUrl],
+        allowMethods: ['POST', 'OPTIONS'],
+        allowHeaders: ['Content-Type'],
+        allowCredentials: true,
       },
-
+      deployOptions: {
+        stageName: 'prod',
+        loggingLevel: apigateway.MethodLoggingLevel.ERROR,
+        dataTraceEnabled: false,
+        throttlingRateLimit: 100,
+        throttlingBurstLimit: 200,
+      },
     });
 
-    // 3) Create a Cognito Authorizer (User Pool Authorizer) referencing our user pool
-    const userPoolAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'UserPoolAuthorizer', {
-      cognitoUserPools: [userPool], // array of user pools
+    // Create routes
+    const auth = pdfRemediationAPI.root.addResource('auth');
+
+    // POST /auth/callback
+    auth.addResource('callback').addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(userAuthLambda),
+      {
+        methodResponses: [{ statusCode: '200' }, { statusCode: '401' }]
+      }
+    );
+
+    // POST /auth/refresh
+    auth.addResource('refresh').addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(userRefreshLambda),
+    );
+
+    // POST /upload
+    pdfRemediationAPI.root.addResource('upload').addMethod(
+      'POST',
+      new apigateway.LambdaIntegration(userUploadLambda),
+    );
+
+    pdfRemediationAPI.root.addResource('download').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(userDownloadLambda),
+    )
+
+    const usagePlan = pdfRemediationAPI.addUsagePlan('UsagePlan', {
+      name: 'DefaultUsagePlan',
+      throttle: {
+        rateLimit: 100,
+        burstLimit: 200,
+      },
     });
 
-    // 4) Add Resource & Method
-    const UpdateFirstSignIn = updateAttributesApi.root.addResource('update-first-sign-in');
-    const quotaResource = updateAttributesApi.root.addResource('upload-quota');
-    // We attach the Cognito authorizer and set the authorizationType to COGNITO
-    UpdateFirstSignIn.addMethod('POST', new apigateway.LambdaIntegration(updateAttributesFn), {
-      authorizer: userPoolAuthorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
-
-    quotaResource.addMethod('POST', new apigateway.LambdaIntegration(checkOrIncrementQuotaFn), {
-      authorizer: userPoolAuthorizer,
-      authorizationType: apigateway.AuthorizationType.COGNITO,
-    });
-
+    usagePlan.addApiStage({ stage: pdfRemediationAPI.deploymentStage });
 
     // const hostedUiDomain = `https://pdf-ui-auth.auth.${this.region}.amazoncognito.com/login/continue?client_id=${userPoolClient.userPoolClientId}&redirect_uri=https%3A%2F%2Fmain.${amplifyApp.appId}.amplifyapp.com&response_type=code&scope=email+openid+phone+profile`
-    const Authority = `cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`;
+    // const Authority = `cognito-idp.${this.region}.amazonaws.com/${userPool.userPoolId}`;
 
     // ------------------ Pass environment variables to Amplify ------------------
     mainBranch.addEnvironment('REACT_APP_BUCKET_NAME', mainBucket.bucketName);
@@ -465,91 +395,10 @@ export class CdkBackendStack extends cdk.Stack {
       mainBranch.addEnvironment('REACT_APP_HTML_BUCKET_NAME', PDF_TO_HTML_BUCKET);
     }
     
-    mainBranch.addEnvironment('REACT_APP_USER_POOL_ID', userPool.userPoolId);
-    mainBranch.addEnvironment('REACT_APP_AUTHORITY', Authority);
-
-    mainBranch.addEnvironment('REACT_APP_USER_POOL_CLIENT_ID', userPoolClient.userPoolClientId);
-    mainBranch.addEnvironment('REACT_APP_IDENTITY_POOL_ID', identityPool.ref);
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', appUrl);
     mainBranch.addEnvironment('REACT_APP_DOMAIN_PREFIX', domainPrefix);
-
-    mainBranch.addEnvironment('REACT_APP_UPDATE_FIRST_SIGN_IN', updateAttributesApi.urlForPath('/update-first-sign-in'));
-    mainBranch.addEnvironment('REACT_APP_UPLOAD_QUOTA_API', updateAttributesApi.urlForPath('/upload-quota'));
-
-
-     // ------------------- Integration of UpdateAttributesGroups Lambda -------------------
-    // 1. Create IAM Role
-    const updateAttributesGroupsLambdaRole = new iam.Role(this, 'UpdateAttributesGroupsLambdaRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-      description: 'IAM role for UpdateAttributesGroups Lambda function',
-    });
-
-    updateAttributesGroupsLambdaRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'cognito-idp:ListUsersInGroup',
-        'cognito-idp:AdminGetUser',
-        'cognito-idp:AdminUpdateUserAttributes',
-        'cognito-idp:AdminListGroupsForUser',
-        'logs:CreateLogGroup',
-        'logs:CreateLogStream',
-        'logs:PutLogEvents',
-        //cloudwatch logs
-      
-      ],
-      resources: [
-        userPool.userPoolArn,
-        `${userPool.userPoolArn}/*` // Allows access to all resources within the User Pool
-      ],
-    }));
-
-    // 2. Create the Lambda function
-    const updateAttributesGroupsFn = new lambda.Function(this, 'UpdateAttributesGroupsFn', {
-      runtime: lambda.Runtime.PYTHON_3_12,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/UpdateAttributesGroups/'), // Ensure this path is correct
-      timeout: cdk.Duration.seconds(900),
-      role: updateAttributesGroupsLambdaRole,
-      environment: {
-        USER_POOL_ID: userPool.userPoolId,
-      },
-    });
-
-
-    const cognitoTrail = new cloudtrail.Trail(this, 'CognitoTrail', {
-      isMultiRegionTrail: true,
-      includeGlobalServiceEvents: true,
-    });
-    
-    // Remove the incorrect event selector
-    // No need to add specific data resource for Cognito events
-    
-    const cognitoGroupChangeRule = new events.Rule(this, 'CognitoGroupChangeRule', {
-      eventPattern: {
-        source: ['aws.cognito-idp'],
-        detailType: ['AWS API Call via CloudTrail'],
-        detail: {
-          eventName: ['AdminAddUserToGroup', 'AdminRemoveUserFromGroup'],
-          requestParameters: {
-            userPoolId: [userPool.userPoolId],
-          },
-        },
-      },
-    });
-    
-    cognitoGroupChangeRule.addTarget(new targets.LambdaFunction(updateAttributesGroupsFn));
-    
-    updateAttributesGroupsFn.addPermission('AllowEventBridgeInvoke', {
-      principal: new iam.ServicePrincipal('events.amazonaws.com'),
-      sourceArn: cognitoGroupChangeRule.ruleArn,
-    });
-    
+   
     // --------------------------- Outputs ------------------------------
-    new cdk.CfnOutput(this, 'UserPoolId', { value: userPool.userPoolId });
-    new cdk.CfnOutput(this, 'UserPoolClientId', { value: userPoolClient.userPoolClientId });
-    new cdk.CfnOutput(this, 'UserPoolDomain', { value: domainPrefix });
-    new cdk.CfnOutput(this, 'IdentityPoolId', { value: identityPool.ref });
-    new cdk.CfnOutput(this, 'AuthenticatedRole', { value: authenticatedRole.roleArn });
     new cdk.CfnOutput(this, 'AmplifyAppId', {
       value: amplifyApp.appId,
       description: 'Amplify Application ID',
@@ -559,15 +408,11 @@ export class CdkBackendStack extends cdk.Stack {
       value: appUrl,
       description: 'Amplify Application URL',
     });
-    new cdk.CfnOutput(this, 'UpdateFirstSignInEndpoint', {
-      value: updateAttributesApi.urlForPath('/update-first-sign-in'),
-      description: 'POST requests to this URL to update attributes.',
-    });
 
-    new cdk.CfnOutput(this, 'CheckUploadQuotaEndpoint', {
-      value: updateAttributesApi.urlForPath('/upload-quota'),
-    });
-
+    new cdk.CfnOutput(this, 'ApiUrl', {
+      value: pdfRemediationAPI.url,
+      description: 'Lambda API base URL'
+    })
 
   }
 }

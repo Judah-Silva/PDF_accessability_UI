@@ -1,5 +1,5 @@
 // src/MainApp.js
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box } from '@mui/material';
@@ -10,20 +10,17 @@ import ProcessingContainer from './components/ProcessingContainer';
 import ResultsContainer from './components/ResultsContainer';
 import LeftNav from './components/LeftNav';
 import theme from './theme';
-import FirstSignInDialog from './components/FirstSignInDialog';
+// import FirstSignInDialog from './components/FirstSignInDialog';
 import HeroSection from './components/HeroSection';
 import InformationBlurb from './components/InformationBlurb';
 
-import { Authority, CheckAndIncrementQuota } from './utilities/constants';
-import CustomCredentialsProvider from './utilities/CustomCredentialsProvider';
-import DeploymentPopup from './components/DeploymentPopup';
+// import DeploymentPopup from './components/DeploymentPopup';
 
 function MainApp({ isLoggingOut, setIsLoggingOut }) {
   const auth = useAuth();
   const navigate = useNavigate();
 
   // AWS & file states
-  const [awsCredentials, setAwsCredentials] = useState(null);
   const [currentPage, setCurrentPage] = useState('upload');
   const [uploadedFile, setUploadedFile] = useState(null);
   const [processedResult, setProcessedResult] = useState(null);
@@ -31,12 +28,9 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
  
 
   // Centralized Usage State
-  const [usageCount, setUsageCount] = useState(0);
-  const [pdf2pdfCount, setPdf2pdfCount] = useState(0);
-  const [pdf2htmlCount, setPdf2htmlCount] = useState(0);
-  const [maxFilesAllowed, setMaxFilesAllowed] = useState(3); // Default value
-  const [maxPagesAllowed, setMaxPagesAllowed] = useState(10); // Default value
-  const [maxSizeAllowedMB, setMaxSizeAllowedMB] = useState(25); // Default value
+  // const [usageCount, setUsageCount] = useState(0);
+  // const [pdf2pdfCount, setPdf2pdfCount] = useState(0);
+  // const [pdf2htmlCount, setPdf2htmlCount] = useState(0);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState('');
 
@@ -48,33 +42,6 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-
-  // Fetch credentials once user is authenticated
-  useEffect(() => {
-    if (auth.isAuthenticated) {
-      (async () => {
-        try {
-          const token = auth.user?.id_token;
-          const domain = Authority;
-
-          const customCredentialsProvider = new CustomCredentialsProvider();
-          customCredentialsProvider.loadFederatedLogin({ domain, token });
-
-          const { credentials: c } =
-            await customCredentialsProvider.getCredentialsAndIdentityId();
-
-          setAwsCredentials({
-            accessKeyId: c.accessKeyId,
-            secretAccessKey: c.secretAccessKey,
-            sessionToken: c.sessionToken,
-          });
-        } catch (error) {
-          console.error('Error fetching Cognito credentials:', error);
-        }
-      })();
-    }
-  }, [auth.isAuthenticated, auth.user]);
-
   // Monitor authentication status within MainApp
   useEffect(() => {
     if (!auth.isAuthenticated && !isLoggingOut) {
@@ -83,73 +50,73 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
     }
   }, [auth.isAuthenticated, isLoggingOut, navigate]);
 
-  // FUNCTION: Fetch current usage from the backend (mode="check")
-  const refreshUsage = useCallback(async () => {
-    if (!auth.isAuthenticated) return; // not logged in yet
-    setLoadingUsage(true);
-    setUsageError('');
+  // // FUNCTION: Fetch current usage from the backend (mode="check")
+  // const refreshUsage = useCallback(async () => {
+  //   if (!auth.isAuthenticated) return; // not logged in yet
+  //   setLoadingUsage(true);
+  //   setUsageError('');
 
-    const userSub = auth.user?.profile?.sub;
-    if (!userSub) {
-      setUsageError('User identifier not found.');
-      setLoadingUsage(false);
-      return;
-    }
+  //   const userSub = auth.user?.profile?.sub;
+  //   if (!userSub) {
+  //     setUsageError('User identifier not found.');
+  //     setLoadingUsage(false);
+  //     return;
+  //   }
 
-    try {
-      const res = await fetch(CheckAndIncrementQuota, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${auth.user?.id_token}`
-        },
-        body: JSON.stringify({ sub: userSub, mode: 'check' }),
-      });
+  //   try {
+  //     const res = await fetch(CheckAndIncrementQuota, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //         Authorization: `Bearer ${auth.user?.id_token}`
+  //       },
+  //       body: JSON.stringify({ sub: userSub, mode: 'check' }),
+  //     });
 
-      if (!res.ok) {
-        const errData = await res.json();
-        setUsageError(errData.message || 'Error fetching usage');
-        setLoadingUsage(false);
-        return;
-      }
+  //     if (!res.ok) {
+  //       const errData = await res.json();
+  //       setUsageError(errData.message || 'Error fetching usage');
+  //       setLoadingUsage(false);
+  //       return;
+  //     }
 
-      const data = await res.json();
-      setUsageCount(data.currentUsage ?? 0);
-      setPdf2pdfCount(data.pdf2pdfCount ?? 0);
-      setPdf2htmlCount(data.pdf2htmlCount ?? 0);
-      setMaxFilesAllowed(data.maxFilesAllowed ?? 3);
-      setMaxPagesAllowed(data.maxPagesAllowed ?? 10);
-      setMaxSizeAllowedMB(data.maxSizeAllowedMB ?? 25);
+  //     const data = await res.json();
+  //     setUsageCount(data.currentUsage ?? 0);
+  //     setPdf2pdfCount(data.pdf2pdfCount ?? 0);
+  //     setPdf2htmlCount(data.pdf2htmlCount ?? 0);
+  //     setMaxFilesAllowed(data.maxFilesAllowed ?? 3);
+  //     setMaxPagesAllowed(data.maxPagesAllowed ?? 10);
+  //     setMaxSizeAllowedMB(data.maxSizeAllowedMB ?? 25);
 
-    } catch (err) {
-      setUsageError(`Failed to fetch usage: ${err.message}`);
-    } finally {
-      setLoadingUsage(false);
-    }
-  }, [auth.isAuthenticated, auth.user]);
+  //   } catch (err) {
+  //     setUsageError(`Failed to fetch usage: ${err.message}`);
+  //   } finally {
+  //     setLoadingUsage(false);
+  //   }
+  // }, [auth.isAuthenticated, auth.user]);
 
   // FUNCTION: Initialize limits from ID token
-  const initializeLimitsFromProfile = useCallback(() => {
-    if (auth.isAuthenticated && auth.user?.profile) {
-      const profile = auth.user.profile;
+  // const initializeLimitsFromProfile = useCallback(() => {
+  //   if (auth.isAuthenticated && auth.user?.profile) {
+  //     const profile = auth.user.profile;
 
-      const customMaxFiles = profile['custom:max_files_allowed'];
-      const customMaxPages = profile['custom:max_pages_allowed'];
-      const customMaxSizeMB = profile['custom:max_size_allowed_MB'];
-      // console.log('Custom limits:', customMaxFiles, customMaxPages, customMaxSizeMB);
-      if (customMaxFiles) setMaxFilesAllowed(parseInt(customMaxFiles, 10));
-      if (customMaxPages) setMaxPagesAllowed(parseInt(customMaxPages, 10));
-      if (customMaxSizeMB) setMaxSizeAllowedMB(parseInt(customMaxSizeMB, 10));
-    }
-  }, [auth.isAuthenticated, auth.user]);
+  //     const customMaxFiles = profile['custom:max_files_allowed'];
+  //     const customMaxPages = profile['custom:max_pages_allowed'];
+  //     const customMaxSizeMB = profile['custom:max_size_allowed_MB'];
+  //     // console.log('Custom limits:', customMaxFiles, customMaxPages, customMaxSizeMB);
+  //     if (customMaxFiles) setMaxFilesAllowed(parseInt(customMaxFiles, 10));
+  //     if (customMaxPages) setMaxPagesAllowed(parseInt(customMaxPages, 10));
+  //     if (customMaxSizeMB) setMaxSizeAllowedMB(parseInt(customMaxSizeMB, 10));
+  //   }
+  // }, [auth.isAuthenticated, auth.user]);
 
   // Call refreshUsage whenever the user becomes authenticated
-  useEffect(() => {
-    if (auth.isAuthenticated) {
-      initializeLimitsFromProfile();
-      refreshUsage();
-    }
-  }, [auth.isAuthenticated, initializeLimitsFromProfile, refreshUsage]);
+  // useEffect(() => {
+  //   if (auth.isAuthenticated) {
+  //     initializeLimitsFromProfile();
+  //     refreshUsage();
+  //   }
+  // }, [auth.isAuthenticated, initializeLimitsFromProfile, refreshUsage]);
 
   // Bucket validation is now only checked when users select format options
 
@@ -178,7 +145,7 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
 
     // After a successful upload (and increment usage),
     // refresh usage so the new count shows up
-    refreshUsage();
+    // refreshUsage();
   };
 
   const handleProcessingComplete = (result) => {
@@ -233,24 +200,22 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
         }}>
           <Header
             handleSignOut={() => auth.removeUser()}
-            usageCount={usageCount}
-            refreshUsage={refreshUsage}
+            // usageCount={usageCount}
+            // refreshUsage={refreshUsage}
             usageError={usageError}
             loadingUsage={loadingUsage}
-            maxFilesAllowed={maxFilesAllowed}
+            // maxFilesAllowed={maxFilesAllowed}
             onMenuClick={() => setMobileNavOpen(true)}
           />
 
-          <FirstSignInDialog />
-
           {/* Deployment popup for bucket configuration - only shown when triggered */}
-          {showDeploymentPopup && bucketValidation && (
+          {/* {showDeploymentPopup && bucketValidation && (
             <DeploymentPopup
               open={showDeploymentPopup}
               onClose={() => setShowDeploymentPopup(false)}
               validation={bucketValidation}
             />
-          )}
+          )} */}
 
           <HeroSection />
 
@@ -259,13 +224,13 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
             {currentPage === 'upload' && (
               <UploadSection
                 onUploadComplete={handleUploadComplete}
-                awsCredentials={awsCredentials}
-                currentUsage={usageCount}
-                maxFilesAllowed={maxFilesAllowed}
-                maxPagesAllowed={maxPagesAllowed}
-                maxSizeAllowedMB={maxSizeAllowedMB}
-                onUsageRefresh={refreshUsage}
-                setUsageCount={setUsageCount}
+                // awsCredentials={awsCredentials}
+                // currentUsage={usageCount}
+                // maxFilesAllowed={maxFilesAllowed}
+                // maxPagesAllowed={maxPagesAllowed}
+                // maxSizeAllowedMB={maxSizeAllowedMB}
+                // onUsageRefresh={refreshUsage}
+                // setUsageCount={setUsageCount}
                 isFileUploaded={!!uploadedFile}
                 onShowDeploymentPopup={handleShowDeploymentPopup}
               />
@@ -276,7 +241,7 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
                 originalFileName={uploadedFile.name}
                 updatedFilename={uploadedFile.updatedName}
                 onFileReady={(downloadUrl) => handleProcessingComplete({ url: downloadUrl })}
-                awsCredentials={awsCredentials}
+                // awsCredentials={awsCredentials}
                 selectedFormat={uploadedFile.format}
                 onNewUpload={handleNewUpload}
               />
@@ -296,7 +261,7 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
                 processingTime={processedResult?.processingTime}
                 originalFileName={uploadedFile?.name}
                 updatedFilename={uploadedFile?.updatedName}
-                awsCredentials={awsCredentials}
+                // awsCredentials={awsCredentials}
                 onNewUpload={handleNewUpload}
               />
             )}
