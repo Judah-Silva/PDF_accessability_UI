@@ -253,6 +253,34 @@ export class CdkBackendStack extends cdk.Stack {
 
     console.log(`Created UserUploadLambda: ${userUploadLambda.functionName}`);
     
+    const userDownloadLambdaRole = new iam.Role(this, 'UserDownloadLambdaRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+    })
+    
+    // Grant CloudWatch Logs permissions
+    userDownloadLambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+    
+    // Create the Lambda with the role
+    const userDownloadLambda = new lambda.Function(this, 'UserDownloadLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('lambda/userDownload/'),
+      timeout: cdk.Duration.seconds(30),
+      role: userDownloadLambdaRole,
+      environment: {
+        PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
+        PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        JWT_PUBLIC_KEY: "",
+        JWT_PRIVATE_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
+      }
+    })
+
+    console.log(`Created UserDownloadLambda: ${userDownloadLambda.functionName}`);
+
     //  ------------------- DynamoDB: StateTable, RefreshTable -------------------
     const stateTable = new dynamo.TableV2(this, 'UserStateTable', {
       tableName: 'UserStateTable',
@@ -281,10 +309,12 @@ export class CdkBackendStack extends cdk.Stack {
     // Create S3 policy for both buckets
     if (pdfBucket) {
       pdfBucket.grantPut(userUploadLambda)
+      pdfBucket.grantRead(userDownloadLambda)
       console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`)
     }
     if (htmlBucket) {
       htmlBucket.grantPut(userUploadLambda)
+      htmlBucket.grantRead(userDownloadLambda)
       console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`)
     }
 
@@ -328,11 +358,16 @@ export class CdkBackendStack extends cdk.Stack {
       new apigateway.LambdaIntegration(userRefreshLambda),
     );
 
-    // POST /upload-url
-    pdfRemediationAPI.root.addResource('upload-url').addMethod(
+    // POST /upload
+    pdfRemediationAPI.root.addResource('upload').addMethod(
       'POST',
       new apigateway.LambdaIntegration(userUploadLambda),
     );
+
+    pdfRemediationAPI.root.addResource('download').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(userDownloadLambda),
+    )
 
     const usagePlan = pdfRemediationAPI.addUsagePlan('UsagePlan', {
       name: 'DefaultUsagePlan',

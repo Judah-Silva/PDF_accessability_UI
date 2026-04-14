@@ -51,33 +51,35 @@ const ResultsContainer = ({
       console.log('Using download URL:', downloadUrl);
 
       // Method 1: Try window.open first (bypasses React Router)
-      const downloadWindow = window.open(downloadUrl, '_blank');
+      // const downloadWindow = window.open(downloadUrl, '_blank');
 
       // Fallback: If popup blocked, use temporary link method
-      if (!downloadWindow || downloadWindow.closed) {
-        console.log('Popup blocked, using link method');
+      // if (!downloadWindow || downloadWindow.closed) {
+        // console.log('Popup blocked, using link method');
 
-        // Method 2: Create temporary link and force download
-        const link = document.createElement('a');
-        link.href = downloadUrl;
-        link.target = '_blank';
-        link.style.display = 'none';
+      // Method 2: Create temporary link and force download
+      // const link = document.createElement('a');
+      // link.href = downloadUrl;
+      // link.target = '_blank';
+      // link.style.display = 'none';
 
-        // Add to DOM, click, and remove
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } else {
-        // If window.open worked, close it after a short delay (the download should start)
-        setTimeout(() => {
-          if (downloadWindow && !downloadWindow.closed) {
-            downloadWindow.close();
-          }
-        }, 1000);
-      }
+      // // Add to DOM, click, and remove
+      // document.body.appendChild(link);
+      // link.click();
+      // document.body.removeChild(link);
+
+      const res = await fetch(downloadUrl);
+      const blob = await res.blob();
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = updatedFilename ?? fileName;
+      a.click();
 
       console.log('Download initiated successfully');
 
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
 

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { S3Client, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import React, { useState, useEffect } from 'react';
+// import { S3Client, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import ResultsContainer from './ResultsContainer';
 import './ProcessingContainer.css';
-import { PDFBucket, HTMLBucket, region } from '../utilities/constants';
+import { PDFBucket, HTMLBucket } from '../utilities/constants';
+import { useApiClient } from '../hooks/useApiClient';
 
 const ProcessingContainer = ({
   originalFileName,
@@ -19,6 +20,8 @@ const ProcessingContainer = ({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pollingAttempts, setPollingAttempts] = useState(0);
 
+  const { apiFetch, downloadFile } = useApiClient();
+
   const processingSteps = [
     { title: "Analyzing Document Structure", description: "Scanning PDF for accessibility issues" },
     { title: "Adding Accessibility Tags", description: "Implementing WCAG 2.1 compliance" },
@@ -26,30 +29,30 @@ const ProcessingContainer = ({
     { title: "Generating Accessible PDF", description: "Creating your accessible PDF document" }
   ];
 
-  const generatePresignedUrl = useCallback(async (bucket, key, filename) => {
-    const s3 = new S3Client({
-      region,
-      credentials: {
-        accessKeyId: awsCredentials?.accessKeyId,
-        secretAccessKey: awsCredentials?.secretAccessKey,
-        sessionToken: awsCredentials?.sessionToken,
-      },
-    });
+  // const generatePresignedUrl = useCallback(async (bucket, key, filename) => {
+  //   const s3 = new S3Client({
+  //     region,
+  //     credentials: {
+  //       accessKeyId: awsCredentials?.accessKeyId,
+  //       secretAccessKey: awsCredentials?.secretAccessKey,
+  //       sessionToken: awsCredentials?.sessionToken,
+  //     },
+  //   });
 
-    const command = new GetObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      ResponseContentDisposition: `attachment; filename="${filename}"`,
-    });
+  //   const command = new GetObjectCommand({
+  //     Bucket: bucket,
+  //     Key: key,
+  //     ResponseContentDisposition: `attachment; filename="${filename}"`,
+  //   });
 
-    try {
-      const url = await getSignedUrl(s3, command, { expiresIn: 30000 }); // 8.33 hours expiration
-      return url;
-    } catch (error) {
-      console.error('Error generating presigned URL:', error);
-      throw error;
-    }
-  }, [awsCredentials]);
+  //   try {
+  //     const url = await getSignedUrl(s3, command, { expiresIn: 30000 }); // 8.33 hours expiration
+  //     return url;
+  //   } catch (error) {
+  //     console.error('Error generating presigned URL:', error);
+  //     throw error;
+  //   }
+  // }, [awsCredentials]);
 
   // Function to truncate the filename if it exceeds the threshold
   const truncateFilename = (filename) => {
@@ -108,24 +111,6 @@ const ProcessingContainer = ({
           return;
         }
 
-        // Check if AWS credentials are available
-        if (!awsCredentials?.accessKeyId) {
-          console.warn('⚠️ AWS credentials not available. Stopping polling.');
-          clearInterval(intervalId);
-          clearInterval(timeIntervalId);
-          clearInterval(stepIntervalId);
-          return;
-        }
-
-        const s3 = new S3Client({
-          region,
-          credentials: {
-            accessKeyId: awsCredentials.accessKeyId,
-            secretAccessKey: awsCredentials.secretAccessKey,
-            sessionToken: awsCredentials.sessionToken,
-          },
-        });
-
         // Use different paths based on format - apply comprehensive sanitization for HTML only
         let objectKey;
         if (selectedFormat === 'html') {
@@ -156,38 +141,32 @@ const ProcessingContainer = ({
 
         console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
 
-        // Check if the processed file exists
-        await s3.send(
-          new HeadObjectCommand({
-            Bucket: selectedBucket,
-            Key: objectKey,
-          })
-        );
-        const desiredFilename = selectedFormat === 'html'
-          ? `final_${originalFileName.replace('.pdf', '.zip')}`
-          : `COMPLIANT_${originalFileName}`;
+        const data = await apiFetch('/file-status', {
+          method: 'POST',
+          body: JSON.stringify({ key: objectKey, bucket: selectedBucket }),
+        });
 
-        const url = await generatePresignedUrl(selectedBucket, objectKey, desiredFilename);
-
-        setDownloadUrl(url);
-        setIsFileReady(true);
-        setCurrentStep(processingSteps.length - 1); // Set to final step
-        onFileReady(url);
-
-        // Clear all intervals on success
-        clearInterval(intervalId);
-        clearInterval(timeIntervalId);
-        clearInterval(stepIntervalId);
-
-        console.log('✅ File processing completed successfully!');
-      } catch (error) {
-        // Log error for debugging but continue polling (file not ready yet)
-        console.log(`⏳ File not ready yet (attempt ${pollingAttempts + 1}). Retrying in 15 seconds...`);
-
-        // If this is the last attempt, show an error
-        if (pollingAttempts + 1 >= MAX_POLLING_ATTEMPTS) {
-          console.error('❌ File processing timed out after maximum attempts');
+        if (data.ready) {
+          const url = await downloadFile(objectKey, true);
+          setDownloadUrl(url);
+          setIsFileReady(true);
+          setCurrentStep(processingSteps.length - 1); // Set to final step
+          onFileReady(url);
+  
+          // Clear all intervals on success
+          clearInterval(intervalId);
+          clearInterval(timeIntervalId);
+          clearInterval(stepIntervalId);
+  
+          console.log('✅ File processing completed successfully!');
+        } else {
+          console.log(`⏳ File not ready yet (attempt ${pollingAttempts + 1}). Retrying in 15 seconds...`);
+          if (pollingAttempts + 1 >= MAX_POLLING_ATTEMPTS) {
+            console.error('❌ File processing timed out after maximum attempts');
+          }
         }
+      } catch (error) {
+        console.error('Error during file polling.');
       }
     };
 
@@ -214,7 +193,7 @@ const ProcessingContainer = ({
       clearInterval(timeIntervalId);
       clearInterval(stepIntervalId);
     };
-  }, [updatedFilename, isFileReady, onFileReady, awsCredentials, originalFileName, selectedFormat, generatePresignedUrl, processingSteps.length, pollingAttempts]);
+  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, processingSteps.length, pollingAttempts]);
 
 
   return (
