@@ -1,8 +1,8 @@
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
-import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamo from 'aws-cdk-lib/aws-dynamodb'
 import * as iam from 'aws-cdk-lib/aws-iam';
@@ -176,7 +176,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userAuthLambda = new lambda.Function(this, 'UserAuthLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userAuth/'),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userAuth/')),
       timeout: cdk.Duration.seconds(30),
       role: userAuthLambdaRole,
       environment: {
@@ -210,7 +210,7 @@ export class CdkBackendStack extends cdk.Stack {
     const userRefreshLambda = new lambda.Function(this, 'UserRefreshLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userRefresh/'),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userRefresh/')),
       timeout: cdk.Duration.seconds(30),
       role: userRefreshLambdaRole,
       environment: {
@@ -238,14 +238,13 @@ export class CdkBackendStack extends cdk.Stack {
     const userUploadLambda = new lambda.Function(this, 'UserUploadLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userUpload/'),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userUpload/')),
       timeout: cdk.Duration.seconds(30),
       role: userUploadLambdaRole,
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
         JWT_PUBLIC_KEY: "",
-        JWT_PRIVATE_KEY: "",
         JWT_ISSUER: "",
         JWT_AUDIENCE: "",
       }
@@ -266,20 +265,46 @@ export class CdkBackendStack extends cdk.Stack {
     const userDownloadLambda = new lambda.Function(this, 'UserDownloadLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userDownload/'),
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/userDownload/')),
       timeout: cdk.Duration.seconds(30),
       role: userDownloadLambdaRole,
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
         JWT_PUBLIC_KEY: "",
-        JWT_PRIVATE_KEY: "",
         JWT_ISSUER: "",
         JWT_AUDIENCE: "",
       }
     })
 
     console.log(`Created UserDownloadLambda: ${userDownloadLambda.functionName}`);
+    
+    const fileStatusLambdaRole = new iam.Role(this, 'FileStatusLambdaRole', {
+      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
+    })
+    
+    // Grant CloudWatch Logs permissions
+    fileStatusLambdaRole.addManagedPolicy(
+      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
+    );
+    
+    // Create the Lambda with the role
+    const fileStatusLambda = new lambda.Function(this, 'FileStatusLambda', {
+      runtime: lambda.Runtime.NODEJS_22_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join(__dirname, 'lambda/fileStatus/')),
+      timeout: cdk.Duration.seconds(30),
+      role: fileStatusLambdaRole,
+      environment: {
+        PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
+        PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        JWT_PUBLIC_KEY: "",
+        JWT_ISSUER: "",
+        JWT_AUDIENCE: "",
+      }
+    })
+
+    console.log(`Created fileStatusLambda: ${fileStatusLambda.functionName}`);
 
     //  ------------------- DynamoDB: StateTable, RefreshTable -------------------
     const stateTable = new dynamo.TableV2(this, 'UserStateTable', {
@@ -397,6 +422,9 @@ export class CdkBackendStack extends cdk.Stack {
     
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', appUrl);
     mainBranch.addEnvironment('REACT_APP_DOMAIN_PREFIX', domainPrefix);
+
+    mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
+    
    
     // --------------------------- Outputs ------------------------------
     new cdk.CfnOutput(this, 'AmplifyAppId', {
