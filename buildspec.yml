@@ -16,16 +16,6 @@ phases:
     commands:
       - echo "Building TypeScript sources"
       - npm run build
-      - echo "Bootstrapping CDK (no approval)..."
-      - |
-        CDK_CONTEXT=""
-        if [ -n "${PDF_TO_PDF_BUCKET:-}" ] && [ "${PDF_TO_PDF_BUCKET}" != "Null" ]; then
-          CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_PDF_BUCKET=$PDF_TO_PDF_BUCKET"
-        fi
-        if [ -n "${PDF_TO_HTML_BUCKET:-}" ] && [ "${PDF_TO_HTML_BUCKET}" != "Null" ]; then
-          CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_HTML_BUCKET=$PDF_TO_HTML_BUCKET"
-        fi
-        cdk bootstrap --require-approval never $CDK_CONTEXT
 
 
   build:
