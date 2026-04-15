@@ -157,7 +157,6 @@ export class CdkBackendStack extends cdk.Stack {
     }
 
     const dynamoStateTable = 'UserStateTable';
-    const dynamoRefreshTable = 'UserRefreshTable';
 
     // ------------------- Lambda: UserAuth, UserRefresh, UserUpload -------------------
 
@@ -181,48 +180,46 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         FRONTEND_ORIGIN: appUrl,
         DYNAMO_STATE_TABLE: dynamoStateTable,
-        DYNAMO_REFRESH_TABLE: dynamoRefreshTable,
         DUO_CLIENT_ID: "",
         DUO_CLIENT_SECRET: "",
         DUO_API_HOST: "",
         DUO_REDIRECT_URL: "",
-        JWT_PUBLIC_KEY: "",
-        JWT_PRIVATE_KEY: "",
-        JWT_ISSUER: "",
-        JWT_AUDIENCE: "",
       }
     })
 
     console.log(`Created UserAuthLambda: ${userAuthLambda.functionName}`);
     
     // Create the Lambda role first with necessary permissions
-    const userRefreshLambdaRole = new iam.Role(this, 'UserRefreshLambdaRole', {
+    const authCallbackLambdaRole = new iam.Role(this, 'AuthCallbackLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
     });
     
     // Grant CloudWatch Logs permissions
-    userRefreshLambdaRole.addManagedPolicy(
+    authCallbackLambdaRole.addManagedPolicy(
       iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
     );
     
     // Create the Lambda with the role
-    const userRefreshLambda = new lambda.Function(this, 'UserRefreshLambda', {
+    const authCallbackLambda = new lambda.Function(this, 'AuthCallbackLambda', {
       runtime: lambda.Runtime.NODEJS_22_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userRefresh/'),
+      code: lambda.Code.fromAsset('lambda/authCallback/'),
       timeout: cdk.Duration.seconds(30),
-      role: userRefreshLambdaRole,
+      role: authCallbackLambdaRole,
       environment: {
         DYNAMO_STATE_TABLE: dynamoStateTable,
-        DYNAMO_REFRESH_TABLE: dynamoRefreshTable,
-        JWT_PUBLIC_KEY: "",
+        FRONTEND_ORIGIN: appUrl,
         JWT_PRIVATE_KEY: "",
         JWT_ISSUER: "",
         JWT_AUDIENCE: "",
+        DUO_CLIENT_ID: "",
+        DUO_CLIENT_SECRET: "",
+        DUO_API_HOST: "",
+        DUO_REDIRECT_URL: "",
       }
     })
 
-    console.log(`Created UserRefreshLambda: ${userRefreshLambda.functionName}`);
+    console.log(`Created authCallbackLambda: ${authCallbackLambda.functionName}`);
     
     const userUploadLambdaRole = new iam.Role(this, 'UserUploadLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
@@ -315,20 +312,8 @@ export class CdkBackendStack extends cdk.Stack {
 
     console.log(`Created DynamoDB StateTable: ${stateTable.tableName}`);
     
-    const refreshTable = new dynamo.TableV2(this, 'UserRefreshTable', {
-      tableName: 'UserRefreshTable',
-      partitionKey: { name: 'tokenHash', type: dynamo.AttributeType.STRING },
-      billing: dynamo.Billing.onDemand(),
-      timeToLiveAttribute: 'ttl',
-    });
-
-    console.log(`Created DynamoDB RefreshTable: ${refreshTable.tableName}`);
-
     stateTable.grantReadWriteData(userAuthLambda);
-    stateTable.grantReadWriteData(userRefreshLambda);
-
-    refreshTable.grantReadWriteData(userAuthLambda);
-    refreshTable.grantReadWriteData(userRefreshLambda);
+    stateTable.grantReadWriteData(authCallbackLambda);
 
     // Create S3 policy for both buckets
     if (pdfBucket) {
@@ -350,8 +335,8 @@ export class CdkBackendStack extends cdk.Stack {
       description: 'API for authentication and file upload signing lambdas.',
       endpointTypes: [apigateway.EndpointType.REGIONAL],
       defaultCorsPreflightOptions: {
-        allowOrigins: [appUrl],
-        allowMethods: ['POST', 'OPTIONS'],
+        allowOrigins: [appUrl, 'http://localhost:3000'],
+        allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type'],
         allowCredentials: true,
       },
@@ -367,19 +352,16 @@ export class CdkBackendStack extends cdk.Stack {
     // Create routes
     const auth = pdfRemediationAPI.root.addResource('auth');
 
-    // POST /auth/callback
-    auth.addResource('callback').addMethod(
+    // POST /auth/login
+    auth.addResource('login').addMethod(
       'POST',
       new apigateway.LambdaIntegration(userAuthLambda),
-      {
-        methodResponses: [{ statusCode: '200' }, { statusCode: '401' }]
-      }
     );
 
-    // POST /auth/refresh
-    auth.addResource('refresh').addMethod(
-      'POST',
-      new apigateway.LambdaIntegration(userRefreshLambda),
+    // GET /auth/callback
+    auth.addResource('callback').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(authCallbackLambda),
     );
 
     // POST /upload
@@ -388,12 +370,19 @@ export class CdkBackendStack extends cdk.Stack {
       new apigateway.LambdaIntegration(userUploadLambda),
     );
 
+    // POST /download
     pdfRemediationAPI.root.addResource('download').addMethod(
-      'GET',
+      'POST',
       new apigateway.LambdaIntegration(userDownloadLambda),
     )
 
-    const usagePlan = pdfRemediationAPI.addUsagePlan('UsagePlan', {
+    // GET /file-status
+    pdfRemediationAPI.root.addResource('file-status').addMethod(
+      'GET',
+      new apigateway.LambdaIntegration(fileStatusLambda),
+    )
+
+    const usagePlan = pdfRemediationAPI.addUsagePlan('DefaultUsagePlan', {
       name: 'DefaultUsagePlan',
       throttle: {
         rateLimit: 100,
