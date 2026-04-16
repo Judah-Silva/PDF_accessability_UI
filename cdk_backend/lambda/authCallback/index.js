@@ -30,7 +30,7 @@ export const handler = async (event) => {
 
   // look up state record
   const stored = await dynamo.send(new GetItemCommand({
-    TableName: process.env.STATE_TABLE,
+    TableName: process.env.DYNAMO_STATE_TABLE,
     Key: { state: { S: state } },
   }));
 
@@ -43,7 +43,7 @@ export const handler = async (event) => {
   if (Math.floor(Date.now() / 1000) > ttl) {
     // still delete the expired record
     await dynamo.send(new DeleteItemCommand({
-      TableName: process.env.STATE_TABLE,
+      TableName: process.env.DYNAMO_STATE_TABLE,
       Key: { state: { S: state } },
     }));
     return redirect(`${ALLOWED_ORIGIN}/home?error=auth_failed`);
@@ -51,7 +51,7 @@ export const handler = async (event) => {
 
   // single use — delete immediately
   await dynamo.send(new DeleteItemCommand({
-    TableName: process.env.STATE_TABLE,
+    TableName: process.env.DYNAMO_STATE_TABLE,
     Key: { state: { S: state } },
   }));
 

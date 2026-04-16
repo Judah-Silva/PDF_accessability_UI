@@ -3,12 +3,9 @@ import React, { useState } from 'react';
 import {
   AppBar,
   Toolbar,
-  Typography,
   Button,
   Box,
-  LinearProgress,
   IconButton,
-  Collapse,
   useMediaQuery,
   useTheme
 } from '@mui/material';
@@ -17,32 +14,30 @@ import { HEADER_BACKGROUND } from '../utilities/constants';
 import logo from '../assets/pdf-accessability-logo.svg';
 import hartnellLogo from '../assets/hartnell-logo.svg';
 import MenuIcon from '@mui/icons-material/Menu';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 
-function Header({ handleSignOut, usageCount, maxFilesAllowed, refreshUsage, usageError, loadingUsage, onMenuClick }) {
+function Header({ handleSignOut, onMenuClick }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [usageExpanded, setUsageExpanded] = useState(false);
+  // const [usageExpanded, setUsageExpanded] = useState(false);
   
   // Compute usage visually
-  const usagePercentage = maxFilesAllowed > 0 ? Math.min((usageCount / maxFilesAllowed) * 100, 100) : 0;
+  // const usagePercentage = maxFilesAllowed > 0 ? Math.min((usageCount / maxFilesAllowed) * 100, 100) : 0;
 
   // Determine progress bar color based on usage
-  const getProgressBarColor = () => {
-    if (usagePercentage < 50) return '#66bb6a'; // Green
-    if (usagePercentage < 80) return '#ffa726'; // Orange
-    return '#ef5350'; // Red
-  };
+  // const getProgressBarColor = () => {
+  //   if (usagePercentage < 50) return '#66bb6a'; // Green
+  //   if (usagePercentage < 80) return '#ffa726'; // Orange
+  //   return '#ef5350'; // Red
+  // };
 
   // Format numbers for better readability
-  const formatNumber = (num) => {
-    return num.toLocaleString();
-  };
+  // const formatNumber = (num) => {
+  //   return num.toLocaleString();
+  // };
 
-  const toggleUsageExpanded = () => {
-    setUsageExpanded(!usageExpanded);
-  };
+  // const toggleUsageExpanded = () => {
+  //   setUsageExpanded(!usageExpanded);
+  // };
 
   return (
     <AppBar position="static" color={HEADER_BACKGROUND} role="banner" aria-label="Application Header">
@@ -111,7 +106,7 @@ function Header({ handleSignOut, usageCount, maxFilesAllowed, refreshUsage, usag
         }}>
           
           {/* Display usage + progress bar */}
-          {isMobile ? (
+          {/* {isMobile ? (
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center', 
@@ -193,7 +188,7 @@ function Header({ handleSignOut, usageCount, maxFilesAllowed, refreshUsage, usag
                 />
               )}
             </Box>
-          )}
+          )} */}
 
           {/* Optional: "Refresh Usage" button */}
           {/* Uncomment the button below if you want to allow manual refreshing from the header */}
@@ -254,7 +249,7 @@ function Header({ handleSignOut, usageCount, maxFilesAllowed, refreshUsage, usag
       </Toolbar>
       
       {/* Mobile Usage Details */}
-      {isMobile && (
+      {/* {isMobile && (
         <Collapse in={usageExpanded}>
           <Box sx={{ p: 2, backgroundColor: 'rgba(0, 0, 0, 0.1)' }}>
             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -285,18 +280,13 @@ function Header({ handleSignOut, usageCount, maxFilesAllowed, refreshUsage, usag
             )}
           </Box>
         </Collapse>
-      )}
+      )} */}
     </AppBar>
   );
 }
 
 Header.propTypes = {
   handleSignOut: PropTypes.func.isRequired,
-  usageCount: PropTypes.number.isRequired,
-  maxFilesAllowed: PropTypes.number.isRequired,
-  refreshUsage: PropTypes.func.isRequired,
-  usageError: PropTypes.string,
-  loadingUsage: PropTypes.bool,
   onMenuClick: PropTypes.func,
 };
 

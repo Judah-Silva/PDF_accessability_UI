@@ -25,8 +25,8 @@ function MainApp() {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [processedResult, setProcessedResult] = useState(null);
   const [processingStartTime, setProcessingStartTime] = useState(null);
-  const [loadingUsage, setLoadingUsage] = useState(false);
-  const [usageError, setUsageError] = useState('');
+  // const [loadingUsage, setLoadingUsage] = useState(false);
+  // const [usageError, setUsageError] = useState('');
 
   // Deployment validation state
   const [showDeploymentPopup, setShowDeploymentPopup] = useState(false);
@@ -38,7 +38,7 @@ function MainApp() {
 
   // Monitor authentication status within MainApp
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!isAuthenticated) {
       // If user is not authenticated, redirect to /home
       navigate('/home', { replace: true });
     }
@@ -114,22 +114,8 @@ function MainApp() {
         }}>
           <Header
             handleSignOut={logout}
-            // usageCount={usageCount}
-            // refreshUsage={refreshUsage}
-            usageError={usageError}
-            loadingUsage={loadingUsage}
-            // maxFilesAllowed={maxFilesAllowed}
             onMenuClick={() => setMobileNavOpen(true)}
           />
-
-          {/* Deployment popup for bucket configuration - only shown when triggered */}
-          {/* {showDeploymentPopup && bucketValidation && (
-            <DeploymentPopup
-              open={showDeploymentPopup}
-              onClose={() => setShowDeploymentPopup(false)}
-              validation={bucketValidation}
-            />
-          )} */}
 
           <HeroSection />
 
@@ -138,15 +124,7 @@ function MainApp() {
             {currentPage === 'upload' && (
               <UploadSection
                 onUploadComplete={handleUploadComplete}
-                // awsCredentials={awsCredentials}
-                // currentUsage={usageCount}
-                // maxFilesAllowed={maxFilesAllowed}
-                // maxPagesAllowed={maxPagesAllowed}
-                // maxSizeAllowedMB={maxSizeAllowedMB}
-                // onUsageRefresh={refreshUsage}
-                // setUsageCount={setUsageCount}
                 isFileUploaded={!!uploadedFile}
-                onShowDeploymentPopup={handleShowDeploymentPopup}
               />
             )}
 
@@ -155,7 +133,6 @@ function MainApp() {
                 originalFileName={uploadedFile.name}
                 updatedFilename={uploadedFile.updatedName}
                 onFileReady={(downloadUrl) => handleProcessingComplete({ url: downloadUrl })}
-                // awsCredentials={awsCredentials}
                 selectedFormat={uploadedFile.format}
                 onNewUpload={handleNewUpload}
               />
@@ -175,7 +152,6 @@ function MainApp() {
                 processingTime={processedResult?.processingTime}
                 originalFileName={uploadedFile?.name}
                 updatedFilename={uploadedFile?.updatedName}
-                // awsCredentials={awsCredentials}
                 onNewUpload={handleNewUpload}
               />
             )}

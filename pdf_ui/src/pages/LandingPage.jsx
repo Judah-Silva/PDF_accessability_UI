@@ -244,7 +244,7 @@ const LandingPage = () => {
               type="email"
               placeholder="Enter your email"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={e => setUsername(e.target.value.split('@')[0])}
               required
               disabled={loading}
               fullWidth

@@ -47,7 +47,7 @@ function sanitizeFilename(filename, format = 'pdf') {
 }
 
 
-function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFilesAllowed, maxPagesAllowed, maxSizeAllowedMB, onUsageRefresh, setUsageCount, isFileUploaded, onShowDeploymentPopup}) {
+function UploadSection({ onUploadComplete, isFileUploaded }) {
   const { username } = useAuthContext();
   const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
@@ -97,7 +97,7 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
     }
 
     // If specific format bucket is missing, show deployment guidance but don't proceed
-    if (formatValidation.needsDeployment) {
+    // if (formatValidation.needsDeployment) {
       // Show deployment popup with specific format guidance
       // if (onShowDeploymentPopup) {
       //   const formatSpecificValidation = {
@@ -108,8 +108,8 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
       //   };
       //   onShowDeploymentPopup(formatSpecificValidation);
       // }
-      return;
-    }
+    //   return;
+    // }
 
     setSelectedFormat(format);
     setErrorMessage('');
@@ -371,7 +371,7 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
 
             <div className="upload-instructions">
               <p className="upload-main-text">Drop your PDF here or click to browse</p>
-              <p className="upload-sub-text">Maximum file size: {maxSizeAllowedMB}MB • Maximum pages: {maxPagesAllowed}</p>
+              {/* <p className="upload-sub-text">Maximum file size: {maxSizeAllowedMB}MB • Maximum pages: {maxPagesAllowed}</p> */}
             </div>
 
             {errorMessage && (
