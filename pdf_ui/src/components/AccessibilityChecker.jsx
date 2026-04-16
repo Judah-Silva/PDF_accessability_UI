@@ -23,13 +23,6 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-// import {
-//   S3Client,
-//   HeadObjectCommand,
-//   GetObjectCommand,
-// } from '@aws-sdk/client-s3';
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
 // import { PDFBucket, region } from '../utilities/constants';
 import { useApiClient } from '../hooks/useApiClient';
 
@@ -58,25 +51,10 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
   const desiredFilenameBefore = `COMPLIANT_${OriginalFileKeyWithoutExtension}_before_remediation_accessibility_report.json`;
   const desiredFilenameAfter = `COMPLIANT_${OriginalFileKeyWithoutExtension}_after_remediation_accessibility_report.json`;
 
-  // const s3 = useMemo(() => {
-  //   if (!awsCredentials?.accessKeyId) {
-  //     console.warn('AWS credentials not available yet');
-  //     return null;
-  //   }
-  //   return new S3Client({
-  //     region,
-  //     credentials: {
-  //       accessKeyId: awsCredentials.accessKeyId,
-  //       secretAccessKey: awsCredentials.secretAccessKey,
-  //       sessionToken: awsCredentials.sessionToken,
-  //     },
-  //   });
-  // }, [awsCredentials]);
-
   /**
    * Utility to fetch the JSON file from S3 (assuming it exists).
    */
-  const fetchJsonFromS3 = async (key) => {
+  const fetchJsonFromS3 = useCallback(async (key) => {
     // if (!s3) {
     //   throw new Error('S3 client not initialized - check environment variables and AWS credentials');
     // }
@@ -92,7 +70,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
       throw err;
     }
     return { json, url };
-  };
+  }, [downloadFile]);
 
   /**
  * Generate a presigned URL to directly download the JSON report from S3 with a specified filename.
@@ -185,17 +163,22 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
   }, [afterReportKey, fetchJsonFromS3]);
 
   const downloadFromURL = async (url) => {
-    const res = await fetch(url);
-    const blob = await res.blob();
-
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = updatedFilename ?? originalFileName;
-    a.click();
-
-    // clean up the object URL after the download starts
-    URL.revokeObjectURL(blobUrl);
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+  
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = updatedFilename ?? originalFileName;
+      a.click();
+  
+      // clean up the object URL after the download starts
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      // TODO: Show user message that something went wrong
+      console.error('Error during accessibility report download.')
+    }
   }
 
 

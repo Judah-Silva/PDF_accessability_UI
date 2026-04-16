@@ -1,5 +1,6 @@
 import { DynamoDBClient, GetItemCommand, DeleteItemCommand } from '@aws-sdk/client-dynamodb';
 import { SignJWT, importPKCS8 } from 'jose';
+import { Client } from '@duosecurity/duo_universal'
 
 const duo = new Client({
   clientId: process.env.DUO_CLIENT_ID,
@@ -86,7 +87,7 @@ export const handler = async (event) => {
   return {
     statusCode: 302,
     headers: {
-      'Location':   `${ALLOWED_ORIGIN}/app?auth=true`,
+      'Location':   `${ALLOWED_ORIGIN}/app?auth=true&username=${decodedToken.preferred_username || savedUsername}`,
       'Set-Cookie': `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_SECONDS}`,
       'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
       'Access-Control-Allow-Credentials': 'true',

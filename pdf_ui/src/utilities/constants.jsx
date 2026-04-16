@@ -26,8 +26,8 @@ export const isMaintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === 'tru
 
 // export const Authority = process.env.REACT_APP_AUTHORITY;
 // export const region = process.env.REACT_APP_AWS_REGION;
-export const Bucket = process.env.REACT_APP_BUCKET_NAME;
-export const Bucket_Region = process.env.REACT_APP_BUCKET_REGION;
+// export const Bucket = process.env.REACT_APP_BUCKET_NAME;
+// export const Bucket_Region = process.env.REACT_APP_BUCKET_REGION;
 
 // Separate buckets for different formats
 export const PDFBucket = process.env.REACT_APP_PDF_BUCKET_NAME || 'Null';

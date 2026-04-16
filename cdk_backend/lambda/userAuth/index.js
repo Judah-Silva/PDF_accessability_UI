@@ -1,7 +1,6 @@
 import * as crypto from 'crypto';
 import { Client } from '@duosecurity/duo_universal';
 import { DynamoDBClient, GetItemCommand, DeleteItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { SignJWT, jwtVerify, importPKCS8 } from 'jose'; // use jose, not jsonwebtoken
 
 const duo = new Client({
   clientId: process.env.DUO_CLIENT_ID,

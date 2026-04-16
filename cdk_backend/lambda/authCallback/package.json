@@ -1,0 +1,10 @@
+{
+  "name": "auth-callback",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "@duosecurity/duo_universal": "3.0.0",
+    "@aws-sdk/client-dynamodb": "3.1030.0",
+    "jose": "6.2.2"
+  }
+}

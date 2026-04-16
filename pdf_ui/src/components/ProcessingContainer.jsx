@@ -141,9 +141,9 @@ const ProcessingContainer = ({
 
         console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
 
-        const data = await apiFetch('/file-status', {
-          method: 'POST',
-          body: JSON.stringify({ key: objectKey, bucket: selectedBucket }),
+        const params = new URLSearchParams({ key: objectKey, bucket: selectedBucket });
+        const data = await apiFetch(`/file-status?${params.toString()}`, {
+          method: 'GET',
         });
 
         if (data.ready) {
@@ -166,6 +166,7 @@ const ProcessingContainer = ({
           }
         }
       } catch (error) {
+        // TODO: Show message to user that something went wrong
         console.error('Error during file polling.');
       }
     };

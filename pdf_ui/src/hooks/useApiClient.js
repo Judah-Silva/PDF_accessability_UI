@@ -1,13 +1,9 @@
-import { useAuth } from 'react-oidc-context';
+import { useAuthContext } from '../context/AuthContext';
 
 export function useApiClient() {
-  const auth = useAuth();
+  const { handleUnauthorized } = useAuthContext();
 
   async function apiFetch(path, options = {}) {
-    if (auth.user?.expired) {
-      await auth.signinSilent();
-    }
-
     let res;
     try {
       res = await fetch(`${process.env.REACT_APP_API_BASE}${path}`, {
@@ -23,7 +19,7 @@ export function useApiClient() {
     }
 
     if (res.status === 401) {
-      await auth.signoutRedirect();
+      handleUnauthorized();
       return;
     }
 
@@ -31,7 +27,7 @@ export function useApiClient() {
 
     if (!res.ok) {
       console.error(`Request failed with status ${res.status}`);
-      return { error: 'Request failed.' };
+      throw new Error (`Request failed with status ${res.status}`);
     }
 
     return body;

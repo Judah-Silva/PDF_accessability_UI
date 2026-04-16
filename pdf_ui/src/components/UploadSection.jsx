@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { useAuth } from 'react-oidc-context'; // to get user sub if needed
 // import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Snackbar, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { PDFDocument } from 'pdf-lib';
 import { useApiClient } from '../hooks/useApiClient';
+import { useAuthContext } from '../context/AuthContext';
 import imgFileQuestion from '../assets/pdf-question.svg';
 import imgFileText from '../assets/pdf-icon.svg';
 import imgCodeXml from '../assets/pdf-html.svg';
@@ -48,7 +48,7 @@ function sanitizeFilename(filename, format = 'pdf') {
 
 
 function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFilesAllowed, maxPagesAllowed, maxSizeAllowedMB, onUsageRefresh, setUsageCount, isFileUploaded, onShowDeploymentPopup}) {
-  const auth = useAuth();
+  const { username } = useAuthContext();
   const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
 
@@ -213,18 +213,12 @@ function UploadSection({ onUploadComplete, awsCredentials, currentUsage, maxFile
     // }
 
     // **3. Attempt to Increment Usage First**
-    const userSub = auth.user?.profile?.sub;
-    if (!userSub) {
-      setErrorMessage('User identifier not found. Are you logged in?');
-      setOpenSnackbar(true);
-      return;
-    }
     // const idToken = auth.user?.id_token;
     setIsUploading(true);
 
     try {
       const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, ''); // YYYYMMDDTHHMMSS format
-      const userEmail = auth.user?.profile?.email || 'unkown-user'; // Use email for unique filename, fallback to 'user'
+      const userEmail = username || 'unkown-user'; // Use email for unique filename, fallback to 'user'
       const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumerics with underscores
       const sanitizedFileName = sanitizeFilename(file.name, selectedFormat) || 'default.pdf'; // Fallback to 'default.pdf' if sanitization fails
       const uniqueFilename = `${sanitizedEmail}_${timestamp}_${sanitizedFileName}`; // Combined unique filename

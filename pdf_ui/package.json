@@ -3,11 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@aws-sdk/client-cloudwatch-logs": "^3.723.0",
-    "@aws-sdk/client-cognito-identity": "^3.723.0",
-    "@aws-sdk/client-s3": "^3.723.0",
-    "@aws-sdk/credential-providers": "^3.723.0",
-    "@aws-sdk/s3-request-presigner": "^3.723.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.3.1",
@@ -20,14 +15,13 @@
     "react": "^19.0.0",
     "react-country-state-city": "^1.1.8",
     "react-dom": "^19.0.0",
-    "react-oidc-context": "^3.2.0",
-    "oidc-client-ts": "3.5.0",
     "react-router-dom": "^7.1.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4"
   },
   "devDependencies": {
-    "@babel/plugin-proposal-private-property-in-object": "7.21.11"
+    "@babel/plugin-proposal-private-property-in-object": "7.21.11",
+    "dotenv": "17.4.2"
   },
   "scripts": {
     "start": "react-scripts start",

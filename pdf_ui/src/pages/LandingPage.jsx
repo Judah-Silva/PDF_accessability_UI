@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from 'react-oidc-context';
+import { useAuthContext } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 // MUI Components
@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
-
+  TextField,
 } from '@mui/material';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -52,34 +52,66 @@ const GradientBox = styled(Box)(({ theme }) => ({
 }));
 
 const LandingPage = () => {
-  const authContext = useAuth();
-  const auth = authContext ?? {
-    isLoading: false,
-    isAuthenticated: false,
-    signinRedirect: () => {},
-  };
+  const { isAuthenticated, isLoading } = useAuthContext();
+  // const auth = authContext ?? {
+  //   isLoading: false,
+  //   isAuthenticated: false,
+  //   signinRedirect: () => {},
+  // };
   const navigate = useNavigate();
+  const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
 
+  // check for error param from Duo callback redirect
   useEffect(() => {
-    if (auth.isLoading) return;
-    if (auth.isAuthenticated) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('error') === 'auth_failed') {
+      setLoginError('Authentication failed. Please try again.');
+      // clean the param off the URL so it doesn't persist on refresh
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (isAuthenticated) {
       navigate('/app', { replace: true });
     }
-  }, [auth.isLoading, auth.isAuthenticated, navigate]);
+  }, [isLoading, isAuthenticated, navigate]);
 
-  const handleSignIn = () => {
-    if (!authContext) {
+  const handleSignIn = async (e) => {
+    e.preventDefault();
+    if (!username.trim()) {
       return;
     }
 
     setLoading(true);
-    // Introduce a 1-second delay before redirecting
-    setTimeout(() => {
-      auth.signinRedirect();
-      // No need to reset loading here as redirect will occur
-    }, 1000);
+    setLoginError('');
+
+    try {
+      const res = await fetch(`${process.env.REACT_APP_API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim() }),
+      });
+ 
+      if (!res.ok) {
+        setLoginError('Login unavailable. Please try again.');
+        return;
+      }
+ 
+      const { authUrl } = await res.json();
+ 
+      // hand off to Duo — userCallback Lambda handles the rest
+      window.location.href = authUrl;
+ 
+    } catch {
+      setLoginError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOpenDialog = () => {
@@ -90,7 +122,7 @@ const LandingPage = () => {
     setOpenDialog(false);
   };
 
-  if (auth.isLoading) {
+  if (isLoading) {
     return (
       <Box
         sx={{
@@ -193,7 +225,7 @@ const LandingPage = () => {
             PDF Accessibility Remediation
           </Typography>
 
-          <GradientBox>
+          <GradientBox component="form" onSubmit={handleSignIn}>
             <Typography
               variant="h5"
               component="h2"
@@ -206,13 +238,44 @@ const LandingPage = () => {
             >
               READY TO TRANSFORM YOUR PDF?
             </Typography>
+
+            {/* Email input */}
+            <TextField
+              type="email"
+              placeholder="Enter your email"
+              value={username}
+              onChange={e => setUsername(e.target.value)}
+              required
+              disabled={loading}
+              fullWidth
+              size="small"
+              inputProps={{ maxLength: 255 }}
+              sx={{
+                backgroundColor: '#fff',
+                borderRadius: '0.5rem',
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '0.5rem',
+                },
+              }}
+            />
+
+            {/* Error message */}
+            {loginError && (
+              <Typography
+                variant="body2"
+                sx={{ color: '#FFC627', textAlign: 'center' }}
+              >
+                {loginError}
+              </Typography>
+            )}
+
             <LoadingButton
+              type="submit"
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIosIcon />}
-              onClick={handleSignIn}
               loading={loading}
-              component="button"
+              disabled={!username.trim()}
               loadingIndicator={
                 <CircularProgress
                   size={24}
@@ -301,85 +364,85 @@ const LandingPage = () => {
         Dialog (modal) for remediation process
       */}
       <Dialog
-  open={openDialog}
-  onClose={handleCloseDialog}
-  aria-labelledby="remediation-dialog-title"
->
-  <DialogTitle
-    id="remediation-dialog-title"
-    sx={{ pr: 4, position: 'relative' }}
-  >
-    <strong>Remediation Process</strong>
-    <IconButton
-      aria-label="close"
-      onClick={handleCloseDialog}
-      sx={{
-        position: 'absolute',
-        right: 8,
-        top: 8,
-        color: (theme) => theme.palette.grey[500],
-      }}
-    >
-      <CloseIcon />
-    </IconButton>
-  </DialogTitle>
+        open={openDialog}
+        onClose={handleCloseDialog}
+        aria-labelledby="remediation-dialog-title"
+      >
+        <DialogTitle
+          id="remediation-dialog-title"
+          sx={{ pr: 4, position: 'relative' }}
+        >
+          <strong>Remediation Process</strong>
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseDialog}
+            sx={{
+              position: 'absolute',
+              right: 8,
+              top: 8,
+              color: (theme) => theme.palette.grey[500],
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
 
-  <DialogContent dividers>
-    <Typography variant="body1" component="p"  paragraph>
-      Here’s how our PDF Remediation process works:
-    </Typography>
+        <DialogContent dividers>
+          <Typography variant="body1" component="p"  paragraph>
+            Here’s how our PDF Remediation process works:
+          </Typography>
 
-    <Typography variant="body2" component="p" paragraph>
-      1. <strong>Upload a Document:</strong> Once you are logged in,
-      simply select a PDF to upload for remediation.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      2. <strong>Remediation:</strong> We use an automated approach,
-      supported by Adobe’s API and AWS services, to fix common accessibility
-      issues like missing tags, incorrect reading order, Alt Text and more.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      3. <strong>Download Your Accessible PDF:</strong> Within a short
-      time, you’ll receive your remediated PDF and accessiblity reports ready to share with
-      everyone.
-    </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            1. <strong>Upload a Document:</strong> Once you are logged in,
+            simply select a PDF to upload for remediation.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            2. <strong>Remediation:</strong> We use an automated approach,
+            supported by Adobe’s API and AWS services, to fix common accessibility
+            issues like missing tags, incorrect reading order, Alt Text and more.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            3. <strong>Download Your Accessible PDF:</strong> Within a short
+            time, you’ll receive your remediated PDF and accessiblity reports ready to share with
+            everyone.
+          </Typography>
 
-    {/* Additional Restrictions Section */}
-    <Typography variant="body1" component="p" paragraph sx={{ mt: 2 }}>
-      <strong>Please note the following restrictions before uploading:</strong>
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      1. Each user is limited to <strong>3</strong> PDF document uploads.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      2. Documents cannot exceed <strong>10</strong> pages.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      3. Documents must be smaller than <strong>25</strong> MB.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      4. Do not upload documents containing sensitive information.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      5. This solution only remediates PDF documents. Other document types will not be accepted.
-    </Typography>
-    <Typography variant="body2" component="p" paragraph>
-      6. This solution does not remediate fillable forms or handle color selection/contrast.
-    </Typography>
-    <Typography variant="body1" component="p" paragraph>
-      This solution is <em>open source</em> and can be deployed in your
-      own AWS environment. Check out{' '}
-      <StyledLink
-                href="https://github.com/ASUCICREPO/PDF_Accessibility"
-                target="_blank"
-                rel="noopener"
-                sx={{ ml: 0.5 }}
-              >
-                Github
-      </StyledLink>
-    </Typography>
-  </DialogContent>
-</Dialog>
+          {/* Additional Restrictions Section */}
+          <Typography variant="body1" component="p" paragraph sx={{ mt: 2 }}>
+            <strong>Please note the following restrictions before uploading:</strong>
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            1. Each user is limited to <strong>3</strong> PDF document uploads.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            2. Documents cannot exceed <strong>10</strong> pages.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            3. Documents must be smaller than <strong>25</strong> MB.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            4. Do not upload documents containing sensitive information.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            5. This solution only remediates PDF documents. Other document types will not be accepted.
+          </Typography>
+          <Typography variant="body2" component="p" paragraph>
+            6. This solution does not remediate fillable forms or handle color selection/contrast.
+          </Typography>
+          <Typography variant="body1" component="p" paragraph>
+            This solution is <em>open source</em> and can be deployed in your
+            own AWS environment. Check out{' '}
+            <StyledLink
+              href="https://github.com/ASUCICREPO/PDF_Accessibility"
+              target="_blank"
+              rel="noopener"
+              sx={{ ml: 0.5 }}
+            >
+              Github
+            </StyledLink>
+          </Typography>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };

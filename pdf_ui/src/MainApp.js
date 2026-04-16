@@ -1,6 +1,6 @@
 // src/MainApp.js
 import React, { useState, useEffect } from 'react';
-import { useAuth } from 'react-oidc-context';
+import { useAuthContext } from './context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
@@ -16,8 +16,8 @@ import InformationBlurb from './components/InformationBlurb';
 
 // import DeploymentPopup from './components/DeploymentPopup';
 
-function MainApp({ isLoggingOut, setIsLoggingOut }) {
-  const auth = useAuth();
+function MainApp() {
+  const { isAuthenticated, logout, isLoading } = useAuthContext();
   const navigate = useNavigate();
 
   // AWS & file states
@@ -25,12 +25,6 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [processedResult, setProcessedResult] = useState(null);
   const [processingStartTime, setProcessingStartTime] = useState(null);
- 
-
-  // Centralized Usage State
-  // const [usageCount, setUsageCount] = useState(0);
-  // const [pdf2pdfCount, setPdf2pdfCount] = useState(0);
-  // const [pdf2htmlCount, setPdf2htmlCount] = useState(0);
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageError, setUsageError] = useState('');
 
@@ -44,79 +38,11 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
 
   // Monitor authentication status within MainApp
   useEffect(() => {
-    if (!auth.isAuthenticated && !isLoggingOut) {
+    if (isAuthenticated) {
       // If user is not authenticated, redirect to /home
       navigate('/home', { replace: true });
     }
-  }, [auth.isAuthenticated, isLoggingOut, navigate]);
-
-  // // FUNCTION: Fetch current usage from the backend (mode="check")
-  // const refreshUsage = useCallback(async () => {
-  //   if (!auth.isAuthenticated) return; // not logged in yet
-  //   setLoadingUsage(true);
-  //   setUsageError('');
-
-  //   const userSub = auth.user?.profile?.sub;
-  //   if (!userSub) {
-  //     setUsageError('User identifier not found.');
-  //     setLoadingUsage(false);
-  //     return;
-  //   }
-
-  //   try {
-  //     const res = await fetch(CheckAndIncrementQuota, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //         Authorization: `Bearer ${auth.user?.id_token}`
-  //       },
-  //       body: JSON.stringify({ sub: userSub, mode: 'check' }),
-  //     });
-
-  //     if (!res.ok) {
-  //       const errData = await res.json();
-  //       setUsageError(errData.message || 'Error fetching usage');
-  //       setLoadingUsage(false);
-  //       return;
-  //     }
-
-  //     const data = await res.json();
-  //     setUsageCount(data.currentUsage ?? 0);
-  //     setPdf2pdfCount(data.pdf2pdfCount ?? 0);
-  //     setPdf2htmlCount(data.pdf2htmlCount ?? 0);
-  //     setMaxFilesAllowed(data.maxFilesAllowed ?? 3);
-  //     setMaxPagesAllowed(data.maxPagesAllowed ?? 10);
-  //     setMaxSizeAllowedMB(data.maxSizeAllowedMB ?? 25);
-
-  //   } catch (err) {
-  //     setUsageError(`Failed to fetch usage: ${err.message}`);
-  //   } finally {
-  //     setLoadingUsage(false);
-  //   }
-  // }, [auth.isAuthenticated, auth.user]);
-
-  // FUNCTION: Initialize limits from ID token
-  // const initializeLimitsFromProfile = useCallback(() => {
-  //   if (auth.isAuthenticated && auth.user?.profile) {
-  //     const profile = auth.user.profile;
-
-  //     const customMaxFiles = profile['custom:max_files_allowed'];
-  //     const customMaxPages = profile['custom:max_pages_allowed'];
-  //     const customMaxSizeMB = profile['custom:max_size_allowed_MB'];
-  //     // console.log('Custom limits:', customMaxFiles, customMaxPages, customMaxSizeMB);
-  //     if (customMaxFiles) setMaxFilesAllowed(parseInt(customMaxFiles, 10));
-  //     if (customMaxPages) setMaxPagesAllowed(parseInt(customMaxPages, 10));
-  //     if (customMaxSizeMB) setMaxSizeAllowedMB(parseInt(customMaxSizeMB, 10));
-  //   }
-  // }, [auth.isAuthenticated, auth.user]);
-
-  // Call refreshUsage whenever the user becomes authenticated
-  // useEffect(() => {
-  //   if (auth.isAuthenticated) {
-  //     initializeLimitsFromProfile();
-  //     refreshUsage();
-  //   }
-  // }, [auth.isAuthenticated, initializeLimitsFromProfile, refreshUsage]);
+  }, [isAuthenticated, navigate]);
 
   // Bucket validation is now only checked when users select format options
 
@@ -166,20 +92,8 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
   };
 
   // Handle authentication loading and errors
-  if (auth.isLoading) {
+  if (isLoading) {
     return <div>Loading...</div>;
-  }
-
-  if (auth.error) {
-    // Example: handle "No matching state found" error
-    if (auth.error.message.includes('No matching state found')) {
-      console.log('Detected invalid or mismatched OIDC state. Redirecting to login...');
-      auth.removeUser().then(() => {
-        auth.signinRedirect();
-      });
-      return null;
-    }
-    return <div>Encountered error: {auth.error.message}</div>;
   }
 
   return (
@@ -199,7 +113,7 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
           minHeight: '100vh'
         }}>
           <Header
-            handleSignOut={() => auth.removeUser()}
+            handleSignOut={logout}
             // usageCount={usageCount}
             // refreshUsage={refreshUsage}
             usageError={usageError}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { CloudWatchLogsClient, StartQueryCommand, GetQueryResultsCommand } from "@aws-sdk/client-cloudwatch-logs";
-import { fromCognitoIdentityPool } from "@aws-sdk/credential-providers";
+// import { CloudWatchLogsClient, StartQueryCommand, GetQueryResultsCommand } from "@aws-sdk/client-cloudwatch-logs";
+// import { fromCognitoIdentityPool } from "@aws-sdk/credential-providers";
 import { Box, Typography, CircularProgress } from '@mui/material';
 import awsconfig from '../aws-exports';
 
