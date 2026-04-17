@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { isTokenExpired } from '../utilities/tokenUtils';
 import { SESSION_TOKEN_KEY } from '../utilities/constants';
@@ -5,7 +6,7 @@ import { SESSION_TOKEN_KEY } from '../utilities/constants';
 export function useApiClient() {
   const { handleUnauthorized } = useAuthContext();
 
-  async function apiFetch(path, options = {}) {
+  const apiFetch = useCallback(async (path, options = {}) => {
     const token = localStorage.getItem(SESSION_TOKEN_KEY) ?? '';
     
     if (!token || isTokenExpired(token)) {
@@ -40,7 +41,7 @@ export function useApiClient() {
     }
 
     return body;
-  }
+  }, [handleUnauthorized]);
 
   /**
    * Requests a presigned URL to download the specified file from S3
@@ -48,7 +49,7 @@ export function useApiClient() {
    * @param {boolean} getUrl If true, only returns the url. If false, the file is automatically downloaded.
    * @returns 
    */
-  async function downloadFile(key, getUrl) {
+  const downloadFile = useCallback(async (key, getUrl) => {
     // Step 1: get a presigned download URL from your Lambda
     let downloadUrl;
     try {
@@ -83,7 +84,7 @@ export function useApiClient() {
 
     // clean up the object URL after the download starts
     URL.revokeObjectURL(url);
-  }
+  }, [apiFetch]);
 
   return { apiFetch, downloadFile };
 }

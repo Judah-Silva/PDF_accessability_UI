@@ -170,7 +170,7 @@ const ProcessingContainer = ({
       clearInterval(timeIntervalId);
       clearInterval(stepIntervalId);
     };
-  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, PROCESSING_STEPS.length, pollingAttempts]);
+  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, pollingAttempts]);
 
   useEffect(() => {
     console.log('effect triggered');
@@ -191,10 +191,6 @@ const ProcessingContainer = ({
   useEffect(() => {
     console.log('origFileName changed');
   }, [originalFileName]);
-
-  useEffect(() => {
-    console.log('processingSteps changed');
-  }, [PROCESSING_STEPS.length]);
 
   useEffect(() => {
     console.log('pollingAttempts changed');
