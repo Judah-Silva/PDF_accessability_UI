@@ -27,7 +27,7 @@ import { useApiClient } from '../hooks/useApiClient';
 import { PDFBucket } from '../utilities/constants';
 
 // PDF method only
-function AccessibilityChecker({ originalFileName, updatedFilename, awsCredentials, open, onClose }) {
+function AccessibilityChecker({ originalFileName, updatedFilename, open, onClose }) {
   const { downloadFile } = useApiClient();
 
   // Reports in JSON form

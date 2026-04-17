@@ -126,7 +126,7 @@ const ProcessingContainer = ({
           setDownloadUrl(url);
           setIsFileReady(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
-          onFileReady(url);
+          onFileReady(url, objectKey.split('/').pop());
   
           // Clear all intervals on success
           clearInterval(intervalId);
@@ -195,7 +195,7 @@ const ProcessingContainer = ({
           </p>
         </div>
 
-        {!isFileReady ? (
+        {!isFileReady && (
           <div className="progress-section">
             <div className="steps-list">
               {PROCESSING_STEPS.map((step, index) => (
@@ -211,14 +211,6 @@ const ProcessingContainer = ({
               ))}
             </div>
           </div>
-        ) : (
-          <ResultsContainer
-            fileName={originalFileName}
-            processedResult={{ url: downloadUrl }}
-            format={selectedFormat}
-            fileSize="File processed successfully"
-            processingTime="Processing completed"
-          />
         )}
 
       </div>

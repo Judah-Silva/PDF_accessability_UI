@@ -132,7 +132,7 @@ function MainApp() {
               <ProcessingContainer
                 originalFileName={uploadedFile.name}
                 updatedFilename={uploadedFile.updatedName}
-                onFileReady={(downloadUrl) => handleProcessingComplete({ url: downloadUrl })}
+                onFileReady={(downloadUrl, finalFileName) => handleProcessingComplete({ url: downloadUrl, finalName: finalFileName })}
                 selectedFormat={uploadedFile.format}
                 onNewUpload={handleNewUpload}
               />
@@ -152,6 +152,7 @@ function MainApp() {
                 processingTime={processedResult?.processingTime}
                 originalFileName={uploadedFile?.name}
                 updatedFilename={uploadedFile?.updatedName}
+                resultFilename={processedResult?.finalName}
                 onNewUpload={handleNewUpload}
               />
             )}

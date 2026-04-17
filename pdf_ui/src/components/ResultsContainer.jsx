@@ -11,7 +11,7 @@ const ResultsContainer = ({
   processingTime,
   originalFileName,
   updatedFilename,
-  awsCredentials,
+  resultFilename,
   onNewUpload
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -56,7 +56,7 @@ const ResultsContainer = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = updatedFilename ?? fileName;
+      a.download = resultFilename ?? fileName;
       a.click();
 
       console.log('Download initiated successfully');
@@ -139,7 +139,6 @@ const ResultsContainer = ({
         <AccessibilityChecker
           originalFileName={originalFileName || fileName}
           updatedFilename={updatedFilename}
-          awsCredentials={awsCredentials}
           open={showReportDialog}
           onClose={() => setShowReportDialog(false)}
         />
