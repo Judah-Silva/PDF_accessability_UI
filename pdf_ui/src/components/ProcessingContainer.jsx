@@ -172,38 +172,6 @@ const ProcessingContainer = ({
     };
   }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, pollingAttempts]);
 
-  useEffect(() => {
-    console.log('effect triggered');
-  }, [updatedFilename]);
-
-  useEffect(() => {
-    console.log('onFileReady changed');
-  }, [onFileReady]);
-  
-  useEffect(() => {
-    console.log('isFileReady changed');
-  }, [isFileReady]);
-  
-  useEffect(() => {
-    console.log('downloadfile changed');
-  }, [downloadFile]);
-
-  useEffect(() => {
-    console.log('origFileName changed');
-  }, [originalFileName]);
-
-  useEffect(() => {
-    console.log('pollingAttempts changed');
-  }, [pollingAttempts]);
-
-  useEffect(() => {
-    console.log('apiFetch changed');
-  }, [apiFetch]);
-
-  useEffect(() => {
-    console.log('selectedFormat changed');
-  }, [selectedFormat]);
-
   return (
     <div className="processing-container">
       <div className="processing-content">
