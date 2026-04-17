@@ -6,6 +6,13 @@ import './ProcessingContainer.css';
 import { PDFBucket, HTMLBucket } from '../utilities/constants';
 import { useApiClient } from '../hooks/useApiClient';
 
+const PROCESSING_STEPS = [
+  { title: "Analyzing Document Structure", description: "Scanning PDF for accessibility issues" },
+  { title: "Adding Accessibility Tags", description: "Implementing WCAG 2.1 compliance" },
+  { title: "Adding Metadata", description: "Final accessibility enhancements" },
+  { title: "Generating Accessible PDF", description: "Creating your accessible PDF document" }
+];
+
 const ProcessingContainer = ({
   originalFileName,
   updatedFilename,
@@ -21,38 +28,6 @@ const ProcessingContainer = ({
   const [pollingAttempts, setPollingAttempts] = useState(0);
 
   const { apiFetch, downloadFile } = useApiClient();
-
-  const processingSteps = [
-    { title: "Analyzing Document Structure", description: "Scanning PDF for accessibility issues" },
-    { title: "Adding Accessibility Tags", description: "Implementing WCAG 2.1 compliance" },
-    { title: "Adding Metadata", description: "Final accessibility enhancements" },
-    { title: "Generating Accessible PDF", description: "Creating your accessible PDF document" }
-  ];
-
-  // const generatePresignedUrl = useCallback(async (bucket, key, filename) => {
-  //   const s3 = new S3Client({
-  //     region,
-  //     credentials: {
-  //       accessKeyId: awsCredentials?.accessKeyId,
-  //       secretAccessKey: awsCredentials?.secretAccessKey,
-  //       sessionToken: awsCredentials?.sessionToken,
-  //     },
-  //   });
-
-  //   const command = new GetObjectCommand({
-  //     Bucket: bucket,
-  //     Key: key,
-  //     ResponseContentDisposition: `attachment; filename="${filename}"`,
-  //   });
-
-  //   try {
-  //     const url = await getSignedUrl(s3, command, { expiresIn: 30000 }); // 8.33 hours expiration
-  //     return url;
-  //   } catch (error) {
-  //     console.error('Error generating presigned URL:', error);
-  //     throw error;
-  //   }
-  // }, [awsCredentials]);
 
   // Function to truncate the filename if it exceeds the threshold
   const truncateFilename = (filename) => {
@@ -151,7 +126,7 @@ const ProcessingContainer = ({
           const url = await downloadFile(objectKey, true);
           setDownloadUrl(url);
           setIsFileReady(true);
-          setCurrentStep(processingSteps.length - 1); // Set to final step
+          setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           onFileReady(url);
   
           // Clear all intervals on success
@@ -183,7 +158,7 @@ const ProcessingContainer = ({
 
       // Microanimation: cycling through steps with cumulative highlighting
       stepIntervalId = setInterval(() => {
-        setCurrentStep(prev => (prev + 1) % processingSteps.length);
+        setCurrentStep(prev => (prev + 1) % PROCESSING_STEPS.length);
       }, 1200);
 
       // File checking with maximum retry limit
@@ -195,8 +170,43 @@ const ProcessingContainer = ({
       clearInterval(timeIntervalId);
       clearInterval(stepIntervalId);
     };
-  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, processingSteps.length, pollingAttempts]);
+  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, PROCESSING_STEPS.length, pollingAttempts]);
 
+  useEffect(() => {
+    console.log('effect triggered');
+  }, [updatedFilename]);
+
+  useEffect(() => {
+    console.log('onFileReady changed');
+  }, [onFileReady]);
+  
+  useEffect(() => {
+    console.log('isFileReady changed');
+  }, [isFileReady]);
+  
+  useEffect(() => {
+    console.log('downloadfile changed');
+  }, [downloadFile]);
+
+  useEffect(() => {
+    console.log('origFileName changed');
+  }, [originalFileName]);
+
+  useEffect(() => {
+    console.log('processingSteps changed');
+  }, [PROCESSING_STEPS.length]);
+
+  useEffect(() => {
+    console.log('pollingAttempts changed');
+  }, [pollingAttempts]);
+
+  useEffect(() => {
+    console.log('apiFetch changed');
+  }, [apiFetch]);
+
+  useEffect(() => {
+    console.log('selectedFormat changed');
+  }, [selectedFormat]);
 
   return (
     <div className="processing-container">
@@ -225,7 +235,7 @@ const ProcessingContainer = ({
         {!isFileReady ? (
           <div className="progress-section">
             <div className="steps-list">
-              {processingSteps.map((step, index) => (
+              {PROCESSING_STEPS.map((step, index) => (
                 <div key={index} className="step-item">
                   <div className={`step-number ${index <= currentStep ? 'active' : ''}`}>
                     {index + 1}
