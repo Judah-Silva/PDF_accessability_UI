@@ -38,11 +38,19 @@ export const handler = async (event) => {
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid token' }) };
   }
 
-  const { key } = JSON.parse(event.body || '{}');
+  const { key, bucket } = JSON.parse(event.body || '{}');
 
   if (!key) {
+    console.log('Missing file key');
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing file key' }) };
   }
+  
+  if (!bucket) {
+    console.log('Missing bucket.');
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Missing bucket' }) };
+  }
+
+  console.log(`Request for bucket - key: ${bucket} - ${key}`);
 
   // SECURITY: ensure the user can only download files from their own files.
   // FINISH LATER
@@ -53,12 +61,13 @@ export const handler = async (event) => {
 
   // SECURITY: make sure the key doesn't contain path traversal
   if (key.includes('..')) {
+    console.log(`Invalid key: ${key}`)
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid key' }) };
   }
   try {
-      const bucket = key.startsWith('pdf/') ? process.env.PDF_TO_PDF_BUCKET : process.env.PDF_TO_HTML_BUCKET;
-
+      console.log(`Checking existence of file: ${key}`);
       await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: key }));
+
 
       const command = new GetObjectCommand({
         Bucket: bucket,
@@ -70,6 +79,7 @@ export const handler = async (event) => {
       // short expiry — download should start immediately
       const downloadUrl = await getSignedUrl(s3, command, { expiresIn: 300 });
     
+      console.log('File found, returning download URL.');
       return {
         statusCode: 200,
         headers: corsHeaders,
@@ -78,6 +88,7 @@ export const handler = async (event) => {
   } catch (err) {
     if (err.name === 'NotFound') {
       // file doesn't exist yet — not an error, just not ready
+      console.log('File not found.');
       return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ notFound: true }) };
     }
     console.log(`Error generating presigned download url for ${key}.`)

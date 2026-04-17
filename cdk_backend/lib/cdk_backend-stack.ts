@@ -300,6 +300,15 @@ export class CdkBackendStack extends cdk.Stack {
       }
     })
 
+    // fileStatusLambda.addToRolePolicy(new iam.PolicyStatement({
+    //   effect: iam.Effect.ALLOW,
+    //   actions: ['s3:GetObject', 's3:HeadObject', 's3:ListBucket'],
+    //   resources: [
+    //     ...(pdfBucket  ? [pdfBucket.bucketArn,  `${pdfBucket.bucketArn}/*`]  : []),
+    //     ...(htmlBucket ? [htmlBucket.bucketArn, `${htmlBucket.bucketArn}/*`] : []),
+    //   ]
+    // }))
+
     console.log(`Created fileStatusLambda: ${fileStatusLambda.functionName}`);
 
     //  ------------------- DynamoDB: StateTable, RefreshTable -------------------
@@ -317,14 +326,16 @@ export class CdkBackendStack extends cdk.Stack {
 
     // Create S3 policy for both buckets
     if (pdfBucket) {
-      pdfBucket.grantPut(userUploadLambda)
-      pdfBucket.grantRead(userDownloadLambda)
-      console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`)
+      pdfBucket.grantPut(userUploadLambda);
+      pdfBucket.grantRead(userDownloadLambda);
+      pdfBucket.grantRead(fileStatusLambda);
+      console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`);
     }
     if (htmlBucket) {
-      htmlBucket.grantPut(userUploadLambda)
-      htmlBucket.grantRead(userDownloadLambda)
-      console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`)
+      htmlBucket.grantPut(userUploadLambda);
+      htmlBucket.grantRead(userDownloadLambda);
+      htmlBucket.grantRead(fileStatusLambda);
+      console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`);
     }
 
     // ------------------- Lambda Function API Gateways -------------------

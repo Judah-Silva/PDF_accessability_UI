@@ -23,8 +23,8 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-// import { PDFBucket, region } from '../utilities/constants';
 import { useApiClient } from '../hooks/useApiClient';
+import { PDFBucket } from '../utilities/constants';
 
 // PDF method only
 function AccessibilityChecker({ originalFileName, updatedFilename, awsCredentials, open, onClose }) {
@@ -62,7 +62,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     // const getObjRes = await s3.send(new GetObjectCommand({ Bucket: PDFBucket, Key: key }));
     let url, json;
     try {
-      url = await downloadFile(key, true);
+      url = await downloadFile(key, PDFBucket, true);
       const getObjRes = await fetch(url);
       const bodyString = await getObjRes.Body.transformToString();
       json = JSON.parse(bodyString);

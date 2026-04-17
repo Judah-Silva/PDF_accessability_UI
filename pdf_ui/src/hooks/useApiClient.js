@@ -49,13 +49,13 @@ export function useApiClient() {
    * @param {boolean} getUrl If true, only returns the url. If false, the file is automatically downloaded.
    * @returns 
    */
-  const downloadFile = useCallback(async (key, getUrl) => {
+  const downloadFile = useCallback(async (key, bucket, getUrl) => {
     // Step 1: get a presigned download URL from your Lambda
     let downloadUrl;
     try {
       const res = await apiFetch('/download', {
         method: 'POST',
-        body: JSON.stringify({ key }),
+        body: JSON.stringify({ key, bucket }),
       });
 
       if (res.notFound) {

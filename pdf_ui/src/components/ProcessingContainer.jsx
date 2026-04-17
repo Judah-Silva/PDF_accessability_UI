@@ -123,7 +123,7 @@ const ProcessingContainer = ({
         });
 
         if (data.ready) {
-          const url = await downloadFile(objectKey, true);
+          const url = await downloadFile(objectKey, selectedBucket, true);
           setDownloadUrl(url);
           setIsFileReady(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
