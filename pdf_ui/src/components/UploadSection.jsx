@@ -239,7 +239,10 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
 
       const upload = await fetch(uploadUrl, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/pdf'},
+        headers: {
+          'Content-Type': 'application/pdf',
+          'x-amz-server-side-encryption': 'AES256',
+        },
         body: file,
       })
 
