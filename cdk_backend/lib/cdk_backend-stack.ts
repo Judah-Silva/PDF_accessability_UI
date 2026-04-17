@@ -337,7 +337,7 @@ export class CdkBackendStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: [appUrl, 'http://localhost:3000'],
         allowMethods: ['GET', 'POST', 'OPTIONS'],
-        allowHeaders: ['Content-Type'],
+        allowHeaders: ['Content-Type, Authorization'],
         allowCredentials: true,
       },
       deployOptions: {

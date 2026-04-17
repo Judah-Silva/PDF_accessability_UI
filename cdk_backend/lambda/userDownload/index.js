@@ -10,16 +10,20 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Credentials': 'true', // required for cookies
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 export const handler = async (event) => {
-  // SECURITY: verify the user's access token\
-  const cookieHeader = event.headers?.cookie || event.headers?.Cookie || '';
-  const cookies = parseCookies(cookieHeader);
-  const accessToken = cookies['access_token'];
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' };
+  }
+
+  // SECURITY: verify the user's access token
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
+  const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!accessToken) {
+    console.log('No access token found. Rejecting access.')
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthenticated' }) };
   }
 

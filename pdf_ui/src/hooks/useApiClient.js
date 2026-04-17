@@ -1,16 +1,25 @@
 import { useAuthContext } from '../context/AuthContext';
+import { isTokenExpired } from '../utilities/tokenUtils';
+import { SESSION_TOKEN_KEY } from '../utilities/constants';
 
 export function useApiClient() {
   const { handleUnauthorized } = useAuthContext();
 
   async function apiFetch(path, options = {}) {
+    const token = localStorage.getItem(SESSION_TOKEN_KEY) ?? '';
+    
+    if (!token || isTokenExpired(token)) {
+      handleUnauthorized();
+      return;
+    }
+
     let res;
     try {
       res = await fetch(`${process.env.REACT_APP_API_BASE}${path}`, {
         ...options,
-        credentials: 'include', // sends httpOnly cookies automatically
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
           ...options.headers,
         },
       });

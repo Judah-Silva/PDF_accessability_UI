@@ -1,19 +1,28 @@
 // src/context/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
-
-const SESSION_KEY = 'app_authenticated';
-const SESSION_USERNAME_KEY = 'app_username';
+import { SESSION_KEY, SESSION_USERNAME_KEY, SESSION_TOKEN_KEY } from '../utilities/constants';
+import { isTokenExpired } from '../utilities/tokenUtils';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    // initialise synchronously from sessionStorage so there's no flicker
-    return sessionStorage.getItem(SESSION_KEY) === 'true';
+    const flag  = localStorage.getItem(SESSION_KEY) === 'true';
+    const token = localStorage.getItem(SESSION_TOKEN_KEY);
+
+    // clear state if token is already expired when the app loads
+    if (flag && (!token || isTokenExpired(token))) {
+      localStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(SESSION_TOKEN_KEY);
+      localStorage.removeItem(SESSION_EMAIL_KEY);
+      return false;
+    }
+
+    return flag;
   });
 
   const [username, setUsername] = useState(() => {
-    return sessionStorage.getItem(SESSION_USERNAME_KEY) ?? ''
+    return localStorage.getItem(SESSION_USERNAME_KEY) ?? ''
   });
 
   // isLoading is only true on the very first render while we check
@@ -24,11 +33,13 @@ export function AuthProvider({ children }) {
     const params = new URLSearchParams(window.location.search);
 
     if (params.get('auth') === 'true') {
+      const token = params.get('token') ?? '';
       const usernameParam = params.get('username') ?? '';
       // Duo callback Lambda redirected here with ?auth=true
       // set the session flag and clean the param off the URL
-      sessionStorage.setItem(SESSION_KEY, 'true');
-      sessionStorage.setItem(SESSION_USERNAME_KEY, usernameParam)
+      localStorage.setItem(SESSION_KEY, 'true');
+      localStorage.setItem(SESSION_TOKEN_KEY, token);
+      localStorage.setItem(SESSION_USERNAME_KEY, usernameParam);
       setIsAuthenticated(true);
       setUsername(usernameParam);
       window.history.replaceState({}, document.title, window.location.pathname);
@@ -38,8 +49,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   function logout() {
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_USERNAME_KEY);
+    console.log('Logging out');
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_USERNAME_KEY);
+    localStorage.removeItem(SESSION_TOKEN_KEY);
     setIsAuthenticated(false);
     setUsername('');
     window.location.href = '/home';
@@ -48,8 +61,10 @@ export function AuthProvider({ children }) {
   // called by useApiClient whenever any API call returns 401
   // token expired or cookie gone — clear state and send to login
   function handleUnauthorized() {
-    sessionStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_USERNAME_KEY);
+    console.log('User is not authenticated. Returning to landing.');
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.removeItem(SESSION_USERNAME_KEY);
+    localStorage.removeItem(SESSION_TOKEN_KEY);
     setIsAuthenticated(false);
     setUsername('');
     window.location.href = '/home';

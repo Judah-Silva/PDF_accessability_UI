@@ -87,8 +87,7 @@ export const handler = async (event) => {
   return {
     statusCode: 302,
     headers: {
-      'Location':   `${ALLOWED_ORIGIN}/app?auth=true&username=${decodedToken.preferred_username || savedUsername}`,
-      'Set-Cookie': `access_token=${accessToken}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_SECONDS}`,
+      'Location':   `${ALLOWED_ORIGIN}/app?auth=true&username=${decodedToken.preferred_username || savedUsername}&token=${accessToken}`,
       'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
       'Access-Control-Allow-Credentials': 'true',
     },

@@ -24,6 +24,10 @@ export const primary_50 = '#F8E6EF';
 
 export const isMaintenanceMode = process.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
+export const SESSION_KEY = 'app_authenticated';
+export const SESSION_TOKEN_KEY = 'app_token';
+export const SESSION_USERNAME_KEY = 'app_username';
+
 // export const Authority = process.env.REACT_APP_AUTHORITY;
 // export const region = process.env.REACT_APP_AWS_REGION;
 // export const Bucket = process.env.REACT_APP_BUCKET_NAME;

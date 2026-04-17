@@ -241,9 +241,9 @@ function Header({ handleSignOut, onMenuClick }) {
               },
               transition: 'all 0.3s ease-in-out',
             }}
-            aria-label="Home Button"
+            aria-label="Sign Out Button"
           >
-            {isMobile ? 'Home' : 'Home'}
+            {isMobile ? 'Log out' : 'Log out'}
           </Button>
         </Box>
       </Toolbar>

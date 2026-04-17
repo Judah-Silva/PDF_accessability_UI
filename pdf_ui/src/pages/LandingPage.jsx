@@ -90,11 +90,13 @@ const LandingPage = () => {
     setLoading(true);
     setLoginError('');
 
+    const usernameParam = username.trim().split('@')[0]
+
     try {
       const res = await fetch(`${process.env.REACT_APP_API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim() }),
+        body: JSON.stringify({ username: usernameParam }),
       });
  
       if (!res.ok) {
@@ -244,7 +246,7 @@ const LandingPage = () => {
               type="email"
               placeholder="Enter your email"
               value={username}
-              onChange={e => setUsername(e.target.value.split('@')[0])}
+              onChange={e => setUsername(e.target.value)}
               required
               disabled={loading}
               fullWidth

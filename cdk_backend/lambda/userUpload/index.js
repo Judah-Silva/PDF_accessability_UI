@@ -14,16 +14,19 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Credentials': 'true', // required for cookies
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-exports.handler = async (event) => {
-  // SECURITY: verify the user's access token from the httpOnly cookie
-  const cookieHeader = event.headers?.cookie || event.headers?.Cookie || '';
-  const cookies = parseCookies(cookieHeader);
-  const accessToken = cookies['access_token'];
+export const handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' };
+  }
+
+  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
+  const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
 
   if (!accessToken) {
+    console.log('No access token found. Rejecting access.')
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthenticated' }) };
   }
 
@@ -35,26 +38,29 @@ exports.handler = async (event) => {
       audience: process.env.JWT_AUDIENCE,
     }));
   } catch (err) {
+    console.log('Invalid token in request.')
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid token' }) };
   }
-
+  
   const { fileName, fileType, fileSize, remediationType } = JSON.parse(event.body || '{}');
-
+  
   // SECURITY: validate file type — never trust the client's claimed MIME type alone
   if (!ALLOWED_MIME_TYPES.includes(fileType)) {
+    console.log(`Invalid file type: ${fileType}`)
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Only PDF files are allowed' }) };
   }
-
+  
   // SECURITY: sanitize the filename — strip path traversal and special characters
   // const safeFileName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_');
   // const safeFileName = `${safeName}-${crypto.randomUUID()}`;
-
+  
   // SECURITY: scope uploads to the authenticated user's own folder
   // and add a random ID to prevent filename collisions/overwrites
   const uploadKey = remediationType === 'pdf2pdf' ? `pdf/${fileName}` : `uploads/${fileName}`;
-
+  
   const bucket = remediationType === 'pdf2pdf' ? process.env.PDF_TO_PDF_BUCKET : process.env.PDF_TO_HTML_BUCKET;
   if (!bucket) {
+    console.log('Upload bucket not found.')
     return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: "Server configuration error." })}
   }
 
