@@ -64,7 +64,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     try {
       url = await downloadFile(key, PDFBucket, true);
       const getObjRes = await fetch(url);
-      const json = await getObjRes.json();
+      json = await getObjRes.json();
       console.log(json);
     } catch (err) {
       throw err;
@@ -104,8 +104,8 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         // First fetch the JSON data
-        const { data, url } = await fetchJsonFromS3(beforeReportKey);
-        setBeforeReport(data);
+        const { json, url } = await fetchJsonFromS3(beforeReportKey);
+        setBeforeReport(json);
 
         // Then generate a presigned URL for that JSON file
         setIsBeforeUrlLoading(true);
@@ -139,8 +139,8 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         // Fetch the JSON data
-        const { data, url } = await fetchJsonFromS3(afterReportKey);
-        setAfterReport(data);
+        const { json, url } = await fetchJsonFromS3(afterReportKey);
+        setAfterReport(json);
 
         // Generate a presigned URL for downloading the AFTER report
         setIsAfterUrlLoading(true);
@@ -162,7 +162,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     }
   }, [afterReportKey, fetchJsonFromS3]);
 
-  const downloadFromURL = async (url) => {
+  const downloadFromURL = async (url, fileDescriptor) => {
     try {
       const res = await fetch(url);
       const blob = await res.blob();
@@ -170,7 +170,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = blobUrl;
-      a.download = updatedFilename ?? originalFileName;
+      a.download = fileDescriptor === 'before' ? desiredFilenameBefore : desiredFilenameAfter;
       a.click();
   
       // clean up the object URL after the download starts
@@ -247,6 +247,8 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
    */
   const renderDetailedReport = () => {
     // If the BEFORE report isn't fetched yet, show a spinner
+    console.log(beforeReport);
+    console.log(afterReport);
     if (!beforeReport) return <CircularProgress />;
 
     const categories = Object.keys(beforeReport['Detailed Report'] || {});
@@ -339,7 +341,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
             color="primary"
             size="small"
             disabled={!beforeReportUrl || isBeforeUrlLoading}
-            onClick={() => downloadFromURL(beforeReportUrl)}
+            onClick={() => downloadFromURL(beforeReportUrl, 'before')}
             startIcon={isBeforeUrlLoading && <CircularProgress size={14} />}
             sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
@@ -352,7 +354,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
             color="primary"
             size="small"
             disabled={!afterReportUrl || isAfterUrlLoading}
-            onClick={() => downloadFromURL(beforeReportUrl)}
+            onClick={() => downloadFromURL(afterReportUrl, 'after')}
             startIcon={isAfterUrlLoading && <CircularProgress size={14} />}
             sx={{ fontSize: '0.75rem', padding: '4px 8px' }}
           >
