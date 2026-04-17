@@ -14,7 +14,7 @@ export function AuthProvider({ children }) {
     if (flag && (!token || isTokenExpired(token))) {
       localStorage.removeItem(SESSION_KEY);
       localStorage.removeItem(SESSION_TOKEN_KEY);
-      localStorage.removeItem(SESSION_EMAIL_KEY);
+      localStorage.removeItem(SESSION_USERNAME_KEY);
       return false;
     }
 
