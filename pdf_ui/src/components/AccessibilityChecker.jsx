@@ -64,8 +64,10 @@ function AccessibilityChecker({ originalFileName, updatedFilename, awsCredential
     try {
       url = await downloadFile(key, PDFBucket, true);
       const getObjRes = await fetch(url);
-      const bodyString = await getObjRes.json();
-      json = JSON.parse(bodyString);
+      const bodyJson = await getObjRes.json();
+      console.log(bodyJson);
+      json = JSON.parse(bodyJson);
+      console.log(json);
     } catch (err) {
       throw err;
     }
