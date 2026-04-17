@@ -74,6 +74,7 @@ const ProcessingContainer = ({
   };
 
   useEffect(() => {
+    console.log('start polling...');
     let intervalId;
     let timeIntervalId;
     let stepIntervalId;
