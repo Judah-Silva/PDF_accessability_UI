@@ -48,7 +48,7 @@ const ResultsContainer = ({
         throw new Error('No download URL received');
       }
 
-      console.log('Using download URL:', downloadUrl);
+      // console.log('Using download URL:', downloadUrl);
 
       const res = await fetch(downloadUrl);
       const blob = await res.blob();

@@ -65,7 +65,7 @@ function AccessibilityChecker({ originalFileName, updatedFilename, open, onClose
       url = await downloadFile(key, PDFBucket, true);
       const getObjRes = await fetch(url);
       json = await getObjRes.json();
-      console.log(json);
+      // console.log(json);
     } catch (err) {
       throw err;
     }
@@ -247,8 +247,8 @@ function AccessibilityChecker({ originalFileName, updatedFilename, open, onClose
    */
   const renderDetailedReport = () => {
     // If the BEFORE report isn't fetched yet, show a spinner
-    console.log(beforeReport);
-    console.log(afterReport);
+    // console.log(beforeReport);
+    // console.log(afterReport);
     if (!beforeReport) return <CircularProgress />;
 
     const categories = Object.keys(beforeReport['Detailed Report'] || {});
