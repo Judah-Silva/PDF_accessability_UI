@@ -90,21 +90,21 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
               </Typography>
             </Box>
             <Divider sx={{ marginBottom: 2 }} />
-            <Typography variant="body2" gutterBottom>
+            {/* <Typography variant="body2" gutterBottom>
               - Each user is limited to <strong>8 PDF document uploads</strong>.
-            </Typography>
-            <Typography variant="body2" gutterBottom>
+            </Typography> */}
+            {/* <Typography variant="body2" gutterBottom>
               - Documents cannot exceed <strong>10 pages</strong>.
-            </Typography>
-            <Typography variant="body2" gutterBottom>
+            </Typography> */}
+            {/* <Typography variant="body2" gutterBottom>
               - Documents must be smaller than <strong>25 MB</strong>.
-            </Typography>
-            <Typography variant="body2" gutterBottom>
+            </Typography> */}
+            {/* <Typography variant="body2" gutterBottom>
               - Do not upload documents containing <strong>sensitive information</strong>.
-            </Typography>
-            <Typography variant="body2" gutterBottom>
+            </Typography> */}
+            {/* <Typography variant="body2" gutterBottom>
               - Do not <strong>bulk upload</strong> documents.
-            </Typography>
+            </Typography> */}
             <Typography variant="body2" gutterBottom>
               - Complete remediation for <strong>one document</strong> before adding a new one.
             </Typography>
@@ -126,7 +126,7 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
               boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
             }}
           >
-          <CardContent>
+          {/* <CardContent>
             <Box display="flex" alignItems="center" marginBottom={2}>
               <SupportIcon fontSize="large" color="secondary" />
               <Typography variant="h6" fontWeight="bold" sx={{ marginLeft: 1 }}>
@@ -146,7 +146,7 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
             <Typography variant="body2" gutterBottom>
               Have questions or need support? Email us: <strong>ai-cic@amazon.com</strong>
             </Typography>
-          </CardContent>
+          </CardContent> */}
         </Card>
         )}
       </Box>
