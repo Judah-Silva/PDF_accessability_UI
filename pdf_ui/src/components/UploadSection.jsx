@@ -144,7 +144,7 @@ function UploadSection({ onUploadComplete }) {
       // Pass the file directly to handleUpload
       const uploadRes = await Promise.all(inputFiles.map(handleUpload));
       const newFilenames = uploadRes.map(r => r.uniqueFilename);
-      const sanitizedFilenames = uploadRes.map(r => r.sanitizedFilename);
+      const sanitizedFilenames = uploadRes.map(r => r.sanitizedFileName);
 
       onUploadComplete(newFilenames, sanitizedFilenames, selectedFormat || 'pdf');
       // handleUpload(file);

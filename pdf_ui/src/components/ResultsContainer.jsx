@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './ResultsContainer.css';
 import img1 from "../assets/zap.svg";
+import img2 from "../assets/pdf-icon.svg";
 import AccessibilityChecker from './AccessibilityChecker';
 
 const ResultsContainer = ({
@@ -104,7 +105,7 @@ const ResultsContainer = ({
             <div className="file-info-card">
               <div className="file-name-section">
                 <div className="file-icon">
-                  <img alt="" className="block max-w-none size-full" src={require("../assets/pdf-icon.svg")} />
+                  <img alt="" className="block max-w-none size-full" src={img2} />
                 </div>
                 <div className="file-details">
                   {/* <div className="file-name">{fileName}</div> */}
