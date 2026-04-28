@@ -135,7 +135,8 @@ const ProcessingContainer = ({
           newEntries.push({ objectKey: objectKey.split('/').pop(), downloadUrl: url });
         }
         
-        setProcessedFiles((prev) => [...prev, ...newEntries]);
+        if (!processedFiles) setProcessedFiles(newEntries)
+        else setProcessedFiles((prev) => [...prev, ...newEntries]);
         setPendingFilenames(stillPending);
 
         if (stillPending.length === 0) {
