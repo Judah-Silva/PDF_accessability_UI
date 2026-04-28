@@ -4,14 +4,13 @@ import img1 from "../assets/zap.svg";
 import AccessibilityChecker from './AccessibilityChecker';
 
 const ResultsContainer = ({
-  fileName,
+  // fileName,
   processedResult,
   format,
-  fileSize,
   processingTime,
   originalFileName,
   updatedFilename,
-  resultFilename,
+  // resultFilename,
   onNewUpload
 }) => {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -32,36 +31,35 @@ const ResultsContainer = ({
   };
 
   const handleDownload = async () => {
-    if (!processedResult || !format || !fileName) {
+    // if (!processedResult || !format || !fileName) {
+    if (!processedResult || !format) {
       alert('Download information not available');
       return;
     }
 
     setIsDownloading(true);
     try {
-      console.log('Starting download for:', { fileName, format });
+      // console.log('Starting download for:', { fileName, format });
 
       // Use the download URL passed from ProcessingContainer
-      const downloadUrl = processedResult.url;
+      for (const { objectKey, downloadUrl } of processedResult.processedFiles) {
+        if (!downloadUrl) {
+          throw new Error('No download URL received');
+        }
 
-      if (!downloadUrl) {
-        throw new Error('No download URL received');
+        const res = await fetch(downloadUrl);
+        const blob = await res.blob();
+  
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        // a.download = resultFilename ?? fileName;
+        a.download = objectKey ?? 'remediated_file.pdf';
+        a.click();
+  
+        console.log('Download initiated successfully');
+        URL.revokeObjectURL(url);
       }
-
-      // console.log('Using download URL:', downloadUrl);
-
-      const res = await fetch(downloadUrl);
-      const blob = await res.blob();
-
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = resultFilename ?? fileName;
-      a.click();
-
-      console.log('Download initiated successfully');
-
-      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
 
@@ -109,7 +107,7 @@ const ResultsContainer = ({
                   <img alt="" className="block max-w-none size-full" src={require("../assets/pdf-icon.svg")} />
                 </div>
                 <div className="file-details">
-                  <div className="file-name">{fileName}</div>
+                  {/* <div className="file-name">{fileName}</div> */}
                   <div className="file-status">File processed successfully</div>
                 </div>
               </div>
@@ -117,7 +115,7 @@ const ResultsContainer = ({
           </div>
 
           <div className="button-group">
-            {format === 'pdf' && (
+            {(format === 'pdf' && processedResult.processedFiles.length === 1) && (
               <button className="view-report-btn" onClick={() => setShowReportDialog(true)}>
                 View Report
               </button>
@@ -126,18 +124,19 @@ const ResultsContainer = ({
               className="download-btn"
               onClick={handleDownload}
               disabled={isDownloading || !processedResult}
-              title={isDownloading ? 'Downloading...' : 'Download the processed file'}
+              title={isDownloading ? 'Downloading...' : 'Download the processed files'}
             >
               {isDownloading ? 'Downloading...' : `Download ${format === 'html' ? 'ZIP' : 'PDF'} File`}
             </button>
           </div>
 
-                        </div>
+        </div>
 
       {/* Accessibility Report Dialog - Only for PDF-PDF format */}
-      {format === 'pdf' && (
+      {(format === 'pdf' && processedResult.processedFiles.length === 1) && (
         <AccessibilityChecker
-          originalFileName={originalFileName || fileName}
+          // originalFileName={originalFileName || fileName}
+          originalFileName={originalFileName}
           updatedFilename={updatedFilename}
           open={showReportDialog}
           onClose={() => setShowReportDialog(false)}

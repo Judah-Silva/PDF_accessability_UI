@@ -47,12 +47,12 @@ function sanitizeFilename(filename, format = 'pdf') {
 }
 
 
-function UploadSection({ onUploadComplete, isFileUploaded }) {
+function UploadSection({ onUploadComplete }) {
   const { username } = useAuthContext();
   const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
 
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
   const [fileSizeMB, setFileSizeMB] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
@@ -72,7 +72,7 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
   }, []);
 
   const resetFileInput = () => {
-    setSelectedFile(null);
+    setSelectedFiles(null);
     setSelectedFormat(null);
     setFileSizeMB(0);
     if (fileInputRef.current) {
@@ -96,39 +96,25 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
       return;
     }
 
-    // If specific format bucket is missing, show deployment guidance but don't proceed
-    // if (formatValidation.needsDeployment) {
-      // Show deployment popup with specific format guidance
-      // if (onShowDeploymentPopup) {
-      //   const formatSpecificValidation = {
-      //     ...fullValidation,
-      //     needsFullDeployment: false,
-      //     specificFormat: format,
-      //     specificBucket: formatValidation.bucketType
-      //   };
-      //   onShowDeploymentPopup(formatSpecificValidation);
-      // }
-    //   return;
-    // }
-
     setSelectedFormat(format);
     setErrorMessage('');
   };
 
-  const handleFileInput = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const handleFileInput = async (inputFiles) => {
+    if (!inputFiles || !inputFiles.length) return;
 
 
     // Reset any existing error messages
     setErrorMessage('');
 
     // **1. Basic PDF Checks**
-    if (file.type !== 'application/pdf') {
-      setErrorMessage('Only PDF files are allowed.');
-      setOpenSnackbar(true);
-      resetFileInput();
-      return;
+    for (const file of inputFiles) {
+      if (file.type !== 'application/pdf') {
+        setErrorMessage('Only PDF files are allowed.');
+        setOpenSnackbar(true);
+        resetFileInput();
+        return;
+      }
     }
 
     // if (file.size > maxSizeAllowedMB * 1024 * 1024) {
@@ -140,32 +126,28 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
 
     // **2. Page Count Check with pdf-lib**
     try {
-      const arrayBuffer = await file.arrayBuffer();
-      // const pdfDoc = await PDFDocument.load(arrayBuffer);
-      // const numPages = pdfDoc.getPageCount();
-
-      // if (numPages > maxPagesAllowed) {
-      //   setErrorMessage(`PDF file cannot exceed ${maxPagesAllowed} pages.`);
-      //   setOpenSnackbar(true);
-      //   resetFileInput();
-      //   return;
-      // }
-
-      setSelectedFile(file);
-      console.log('File object details:', {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        lastModified: file.lastModified
-      });
-      const sizeInBytes = file.size || 0;
-      const sizeInMB = sizeInBytes / (1024 * 1024);
-      const displaySize = sizeInMB >= 0.1 ? parseFloat(sizeInMB.toFixed(1)) : parseFloat(sizeInMB.toFixed(2));
-      setFileSizeMB(displaySize);
-      console.log('File size set to:', sizeInMB, 'MB for file:', file.name, '(raw size:', file.size, 'bytes)');
+      setSelectedFiles(inputFiles);
+      // console.log('File object details:', {
+      //   name: file.name,
+      //   size: file.size,
+      //   type: file.type,
+      //   lastModified: file.lastModified
+      // });
+      if (inputFiles.length === 1) {
+        const file = inputFiles[0];
+        const sizeInBytes = file.size || 0;
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        const displaySize = sizeInMB >= 0.1 ? parseFloat(sizeInMB.toFixed(1)) : parseFloat(sizeInMB.toFixed(2));
+        setFileSizeMB(displaySize);
+        console.log('File size set to:', sizeInMB, 'MB for file:', file.name, '(raw size:', file.size, 'bytes)');
+      }
       // Pass the file directly to handleUpload
-      handleUpload(file);
+      const uploadRes = await Promise.all(inputFiles.map(handleUpload));
+      const newFilenames = uploadRes.map(r => r.uniqueFilename);
+      const sanitizedFilenames = uploadRes.map(r => r.sanitizedFilename);
 
+      onUploadComplete(newFilenames, sanitizedFilenames, selectedFormat || 'pdf');
+      // handleUpload(file);
     } catch (error) {
       setErrorMessage('Unable to read the PDF file.');
       setOpenSnackbar(true);
@@ -176,14 +158,22 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
   const handleFileSelect = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.pdf';
+    input.multiple = true;
+    input.accept = '.pdf,application/pdf';
     input.onchange = (e) => {
-      handleFileInput(e);
+      const files = [...e.target.files];
+      if (files.length) handleFileInput(files);
     };
     input.click();
   };
 
-  const handleUpload = async (file = selectedFile) => {
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    const droppedFiles = [...e.dataTransfer.files];
+    if (droppedFiles.length) handleFileInput(droppedFiles);
+  };
+
+  const handleUpload = async (file) => {
 
     // **1. Check if the bucket for selected format is configured**
     const formatValidation = validateFormatBucket(selectedFormat);
@@ -253,16 +243,17 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
       // const command = new PutObjectCommand(params);
       // await client.send(command);
 
-      console.log('Upload complete, new file name:', uniqueFilename);
+      console.log('File uploaded, new file name:', uniqueFilename);
 
       // **6. Notify Parent of Completion with format**
-      onUploadComplete(uniqueFilename, sanitizedFileName, selectedFormat || 'pdf');
-
+      // onUploadComplete(uniqueFilename, sanitizedFileName, selectedFormat || 'pdf');
+      
       // **7. Refresh Usage**
       // if (onUsageRefresh) {
-      //   onUsageRefresh();
+        //   onUsageRefresh();
       // }
-
+        
+      return { uniqueFilename, sanitizedFileName };
       // **8. Don't reset automatically - let parent component handle flow**
     } catch (error) {
       console.error('Error uploading file.');
@@ -283,7 +274,7 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
     const formatTitle = selectedFormat === 'pdf' ? 'PDF to PDF' : 'PDF to HTML';
     const formatIcon = selectedFormat === 'pdf' ? imgFileText : imgCodeXml;
 
-    if (selectedFile) {
+    if (selectedFiles) {
       return (
         <motion.div
           initial={{ opacity: 0 }}
@@ -303,10 +294,12 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
 
               <div className="upload-progress">
                 <div className="file-info">
-                  <span className="file-name">{selectedFile.name} • {fileSizeMB > 0 ? fileSizeMB : (selectedFile?.size ? (() => {
-                    const size = selectedFile.size / (1024 * 1024);
-                    return size >= 0.1 ? size.toFixed(1) : size.toFixed(2);
-                  })() : '0.0')} MB</span>
+                  { selectedFiles.length === 1 && (
+                    <span className="file-name">{selectedFiles[0].name} • {fileSizeMB > 0 ? fileSizeMB : (selectedFiles[0]?.size ? (() => {
+                      const size = selectedFiles[0].size / (1024 * 1024);
+                      return size >= 0.1 ? size.toFixed(1) : size.toFixed(2);
+                    })() : '0.0')} MB</span>
+                  )}
                   <span className="progress-percent">{isUploading ? 'Uploading...' : 'Ready'}</span>
                 </div>
                 <div className="progress-bar">
@@ -324,7 +317,7 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
                 <button
                   className="change-file-btn"
                   onClick={() => {
-                    setSelectedFile(null);
+                    setSelectedFiles(null);
                     setErrorMessage('');
                     setIsUploading(false);
                   }}
@@ -361,7 +354,11 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="upload-container-selected">
+        <div
+          className="upload-container-selected"
+          onDrop={handleFileDrop}
+          onDragOver={(e) => e.preventDefault()}
+          >
           <div className="upload-content">
             <div className="upload-header">
               <div className="file-icon">
@@ -373,7 +370,7 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
             </div>
 
             <div className="upload-instructions">
-              <p className="upload-main-text">Drop your PDF here or click to browse</p>
+              <p className="upload-main-text">Drop your PDFs here or click to browse</p>
               {/* <p className="upload-sub-text">Maximum file size: {maxSizeAllowedMB}MB • Maximum pages: {maxPagesAllowed}</p> */}
             </div>
 
@@ -388,13 +385,13 @@ function UploadSection({ onUploadComplete, isFileUploaded }) {
                 Change Output Format
               </button>
               <button className="upload-btn" onClick={handleFileSelect} disabled={isUploading}>
-                {isUploading ? 'Uploading...' : 'Upload PDF'}
+                {isUploading ? 'Uploading...' : 'Upload PDFs'}
               </button>
             </div>
           </div>
 
           <div className="disclaimer">
-            <p>This solution does not remediate for fillable forms and color selection/ contrast for people with color blindness</p>
+            <p>This solution does not remediate for fillable forms and color selection/contrast for people with color blindness</p>
           </div>
         </div>
 

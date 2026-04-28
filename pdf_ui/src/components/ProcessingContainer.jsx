@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-// import { S3Client, HeadObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-// import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import React, { useState, useEffect, useCallback } from 'react';
 import ResultsContainer from './ResultsContainer';
 import './ProcessingContainer.css';
 import { PDFBucket, HTMLBucket } from '../utilities/constants';
@@ -14,15 +12,14 @@ const PROCESSING_STEPS = [
 ];
 
 const ProcessingContainer = ({
-  originalFileName,
-  updatedFilename,
-  onFileReady,
-  awsCredentials,
+  pendingFilenames,
+  setPendingFilenames,
+  onAllFilesReady,
   selectedFormat,
   onNewUpload
 }) => {
-  const [downloadUrl, setDownloadUrl] = useState('');
-  const [isFileReady, setIsFileReady] = useState(false);
+  const [processedFiles, setProcessedFiles] = useState(null);
+  const [isDoneProcessing, setIsDoneProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pollingAttempts, setPollingAttempts] = useState(0);
@@ -47,6 +44,37 @@ const ProcessingContainer = ({
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const getObjectKey = useCallback((file_name) => {
+    let objectKey;
+    if (selectedFormat === 'html') {
+      // Sanitize filename for HTML format to match Bedrock Data Automation constraints
+      const sanitizeForS3 = (filename) => {
+        let sanitized = filename;
+        // Replace spaces with underscores
+        sanitized = sanitized.replace(/\s/g, '_');
+        // Replace characters that violate Bedrock Data Automation S3 URI constraints
+        // Pattern disallows: \x00-\x1F (control chars), \x7F (DEL), { ^ } % ` ] " > [ ~ < # |
+        // Also replace other problematic characters: & \ * ? / $ ! ' : @ + =
+        // eslint-disable-next-line no-control-regex
+        const problematicChars = /[\x00-\x1F\x7F{^}%`\]">[~<#|&\\*?/$!'":@+=]/g;
+        sanitized = sanitized.replace(problematicChars, '_');
+        // Replace multiple consecutive underscores with a single one
+        while (sanitized.includes('__')) {
+          sanitized = sanitized.replace(/__/g, '_');
+        }
+        // Remove leading/trailing underscores
+        sanitized = sanitized.replace(/^_+|_+$/g, '');
+        return sanitized;
+      };
+      objectKey = `remediated/final_${sanitizeForS3(file_name.replace('.pdf', '.zip'))}`;
+    } else {
+      // PDF format uses original filename without extra sanitization
+      objectKey = `result/COMPLIANT_${file_name}`;
+    }
+
+    return objectKey;
+  }, [selectedFormat]);
 
   useEffect(() => {
     let intervalId;
@@ -86,47 +114,35 @@ const ProcessingContainer = ({
           return;
         }
 
-        // Use different paths based on format - apply comprehensive sanitization for HTML only
-        let objectKey;
-        if (selectedFormat === 'html') {
-          // Sanitize filename for HTML format to match Bedrock Data Automation constraints
-          const sanitizeForS3 = (filename) => {
-            let sanitized = filename;
-            // Replace spaces with underscores
-            sanitized = sanitized.replace(/\s/g, '_');
-            // Replace characters that violate Bedrock Data Automation S3 URI constraints
-            // Pattern disallows: \x00-\x1F (control chars), \x7F (DEL), { ^ } % ` ] " > [ ~ < # |
-            // Also replace other problematic characters: & \ * ? / $ ! ' : @ + =
-            // eslint-disable-next-line no-control-regex
-            const problematicChars = /[\x00-\x1F\x7F{^}%`\]">[~<#|&\\*?/$!'":@+=]/g;
-            sanitized = sanitized.replace(problematicChars, '_');
-            // Replace multiple consecutive underscores with a single one
-            while (sanitized.includes('__')) {
-              sanitized = sanitized.replace(/__/g, '_');
-            }
-            // Remove leading/trailing underscores
-            sanitized = sanitized.replace(/^_+|_+$/g, '');
-            return sanitized;
-          };
-          objectKey = `remediated/final_${sanitizeForS3(updatedFilename.replace('.pdf', '.zip'))}`;
-        } else {
-          // PDF format uses original filename without extra sanitization
-          objectKey = `result/COMPLIANT_${updatedFilename}`;
-        }
+        const results = await Promise.all(
+          pendingFilenames.map(async (filename) => {
+            const objectKey = getObjectKey(filename);
+            // console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
+            const params = new URLSearchParams({ key: objectKey, bucket: selectedBucket });
+            const data = await apiFetch(`/file-status?${params.toString()}`, {
+              method: 'GET',
+            });
+            return { filename, objectKey, ready: data.ready };
+          })
+        )
 
-        console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
+        const readyFiles = results.filter(r => r.ready);
+        const stillPending = results.filter(r => !r.ready).map(r => r.filename);
 
-        const params = new URLSearchParams({ key: objectKey, bucket: selectedBucket });
-        const data = await apiFetch(`/file-status?${params.toString()}`, {
-          method: 'GET',
-        });
-
-        if (data.ready) {
+        const newEntries = [];
+        for (const { objectKey } of readyFiles) {
           const url = await downloadFile(objectKey, selectedBucket, true);
-          setDownloadUrl(url);
-          setIsFileReady(true);
+          newEntries.push({ objectKey: objectKey.split('/').pop(), downloadUrl: url });
+        }
+        
+        setProcessedFiles((prev) => [...prev, ...newEntries]);
+        setPendingFilenames(stillPending);
+
+        if (stillPending.length === 0) {
+          setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
-          onFileReady(url, objectKey.split('/').pop());
+          // onFileReady(url, objectKey.split('/').pop());
+          onAllFilesReady([...processedFiles, ...newEntries]);
   
           // Clear all intervals on success
           clearInterval(intervalId);
@@ -146,7 +162,7 @@ const ProcessingContainer = ({
       }
     };
 
-    if (updatedFilename && !isFileReady) {
+    if (pendingFilenames.length > 0 && !isDoneProcessing) {
       // Reset polling attempts for new file
       setPollingAttempts(0);
 
@@ -169,14 +185,15 @@ const ProcessingContainer = ({
       clearInterval(timeIntervalId);
       clearInterval(stepIntervalId);
     };
-  }, [updatedFilename, isFileReady, onFileReady, apiFetch, downloadFile, originalFileName, selectedFormat, pollingAttempts]);
+  }, [pendingFilenames, setPendingFilenames, isDoneProcessing, onAllFilesReady, apiFetch, downloadFile, selectedFormat, getObjectKey, processedFiles, pollingAttempts]);
 
   return (
     <div className="processing-container">
       <div className="processing-content">
         <div className="processing-header">
           <div className="header-content">
-            <h2>{isFileReady ? `File Ready: ${truncateFilename(originalFileName)}` : `Processing: ${truncateFilename(originalFileName)}`}</h2>
+            {/* <h2>{isDoneProcessing ? `File Ready: ${truncateFilename(originalFileName)}` : `Processing: ${truncateFilename(originalFileName)}`}</h2> */}
+            <h2>{isDoneProcessing ? 'Processing Complete' : 'Processing'}</h2>
             <div className="flow-indicator">
               {selectedFormat === 'html' ? 'PDF → HTML' : 'PDF → PDF'}
             </div>
@@ -188,14 +205,14 @@ const ProcessingContainer = ({
             <span>⏱️ Time elapsed: {formatElapsedTime(elapsedTime)}</span>
           </div>
           <p className="processing-description">
-            {isFileReady
+            {isDoneProcessing
               ? 'Remediation complete! Your file is ready for download.'
               : 'Remediation process typically takes a few minutes to complete depending on the document complexity'
             }
           </p>
         </div>
 
-        {!isFileReady && (
+        {!isDoneProcessing && (
           <div className="progress-section">
             <div className="steps-list">
               {PROCESSING_STEPS.map((step, index) => (

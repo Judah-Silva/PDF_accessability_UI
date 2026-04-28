@@ -22,7 +22,10 @@ function MainApp() {
 
   // AWS & file states
   const [currentPage, setCurrentPage] = useState('upload');
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState(null);
+  const [uploadedFilenames, setUploadedFilenames] = useState(null);
+  const [originalFileNames, setOriginalFilenames] = useState(null);
+  const [selectedFormat, setSelectedFormat] = useState(null);
   const [processedResult, setProcessedResult] = useState(null);
   const [processingStartTime, setProcessingStartTime] = useState(null);
   // const [loadingUsage, setLoadingUsage] = useState(false);
@@ -53,19 +56,25 @@ function MainApp() {
   };
 
   // Handle events from child components
-  const handleUploadComplete = (updated_filename, original_fileName, format = 'pdf') => {
-    console.log('Upload completed, new file name:', updated_filename);
-    console.log('Original file name:', original_fileName);
+  const handleUploadComplete = (updated_filenames, original_fileNames, format = 'pdf') => {
+    console.log('Upload completed, new file names:', updated_filenames);
+    console.log('Original file names:', original_fileNames);
     console.log('Selected format:', format);
 
-    const fileData = {
-      name: original_fileName,
-      updatedName: updated_filename,
-      format: format,
-      size: 0 // We'll get this from the upload component if needed
-    };
+    const fileData = []
+    for (let i = 0; i < updated_filenames.length; i++) {
+      fileData.push({
+        name: original_fileNames[i],
+        updatedName: updated_filenames[i],
+        format: format,
+        size: 0 // We'll get this from the upload component if needed
+      });
+    }
 
-    setUploadedFile(fileData);
+    setUploadedFiles(fileData);
+    setUploadedFilenames(updated_filenames);
+    setOriginalFilenames(original_fileNames);
+    setSelectedFormat(format);
     setProcessingStartTime(Date.now()); // Track when processing starts
     setCurrentPage('processing');
 
@@ -74,19 +83,26 @@ function MainApp() {
     // refreshUsage();
   };
 
-  const handleProcessingComplete = (result) => {
+  /**
+   * 
+   * @param {{ objectKey: string, downloadUrl: string }[]} processedFiles 
+   */
+  const handleProcessingComplete = (processedFiles) => {
     // Calculate processing time
     const processingTime = processingStartTime
       ? Math.round((Date.now() - processingStartTime) / 1000) // Convert to seconds
       : null;
 
-    setProcessedResult({ ...result, processingTime });
+    setProcessedResult({ processedFiles, processingTime });
     setCurrentPage('results');
   };
 
   const handleNewUpload = () => {
     setCurrentPage('upload');
-    setUploadedFile(null);
+    setSelectedFormat(null);
+    setUploadedFilenames(null);
+    setOriginalFilenames(null);
+    setUploadedFiles(null);
     setProcessedResult(null);
     setProcessingStartTime(null);
   };
@@ -124,21 +140,20 @@ function MainApp() {
             {currentPage === 'upload' && (
               <UploadSection
                 onUploadComplete={handleUploadComplete}
-                isFileUploaded={!!uploadedFile}
               />
             )}
 
-            {currentPage === 'processing' && uploadedFile && (
+            {currentPage === 'processing' && uploadedFiles && (
               <ProcessingContainer
-                originalFileName={uploadedFile.name}
-                updatedFilename={uploadedFile.updatedName}
-                onFileReady={(downloadUrl, finalFileName) => handleProcessingComplete({ url: downloadUrl, finalName: finalFileName })}
-                selectedFormat={uploadedFile.format}
+                pendingFilenames={uploadedFilenames}
+                setPendingFilenames={setUploadedFilenames}
+                onAllFilesReady={(processedFiles) => handleProcessingComplete(processedFiles)}
+                selectedFormat={selectedFormat}
                 onNewUpload={handleNewUpload}
               />
             )}
 
-            {currentPage === 'processing' && !uploadedFile && (
+            {currentPage === 'processing' && !uploadedFiles && (
               <div style={{ padding: '40px', textAlign: 'center' }}>
                 <p>Loading processing page...</p>
               </div>
@@ -146,13 +161,13 @@ function MainApp() {
 
             {currentPage === 'results' && (
               <ResultsContainer
-                fileName={uploadedFile?.name}
+                // fileName={uploadedFile?.name}
                 processedResult={processedResult}
-                format={uploadedFile?.format}
+                format={selectedFormat}
                 processingTime={processedResult?.processingTime}
-                originalFileName={uploadedFile?.name}
-                updatedFilename={uploadedFile?.updatedName}
-                resultFilename={processedResult?.finalName}
+                originalFileName={originalFileNames.length > 0 ? originalFileNames[0] : null}
+                updatedFilename={uploadedFilenames.length > 0 ? uploadedFilenames[0] : null}
+                // resultFilename={processedResult?.finalName}
                 onNewUpload={handleNewUpload}
               />
             )}
