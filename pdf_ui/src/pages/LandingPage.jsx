@@ -431,7 +431,7 @@ const LandingPage = () => {
           <Typography variant="body2" component="p" paragraph>
             2. This solution does not remediate fillable forms or handle color selection/contrast.
           </Typography>
-          <Typography variant="body1" component="p" paragraph>
+          {/* <Typography variant="body1" component="p" paragraph>
             This remediation solution is powered by Arizona State University's original PDF Accessibility project.
             Check out {' '}
             <StyledLink
@@ -442,7 +442,7 @@ const LandingPage = () => {
             >
               ASU PDF Accessibility
             </StyledLink>
-          </Typography>
+          </Typography> */}
         </DialogContent>
       </Dialog>
     </Box>
