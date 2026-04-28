@@ -56,7 +56,7 @@ phases:
       - >-
         aws amplify create-deployment \
           --app-id $AMPLIFY_APP_ID \
-          --branch-name main \
+          --branch-name dev \
           --output json > deployment_response.json
       - echo "Extracting upload URL and job ID..."
       - >-
@@ -69,6 +69,6 @@ phases:
       - >-
         aws amplify start-deployment \
           --app-id $AMPLIFY_APP_ID \
-          --branch-name main \
+          --branch-name dev \
           --job-id $JOB_ID
       - echo "✅ Frontend deployment initiated successfully!"
