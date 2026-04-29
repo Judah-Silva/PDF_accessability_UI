@@ -45,7 +45,7 @@ phases:
       - echo "Building React application..."
       - npm run build
       - echo "Creating deployment package..."
-      - cd build && zip -r build .
+      - cd dist && zip -r dist .
       - echo "Frontend build completed successfully"
 
   post_build:
@@ -64,7 +64,7 @@ phases:
       - >-
         export JOB_ID=$(python3 -c "import json; data=json.load(open('deployment_response.json')); print(data['jobId'])")
       - echo "Uploading build.zip to Amplify..."
-      - curl -X PUT -T build.zip "$UPLOAD_URL"
+      - curl -X PUT -T dist.zip "$UPLOAD_URL"
       - echo "Starting deployment..."
       - >-
         aws amplify start-deployment \
