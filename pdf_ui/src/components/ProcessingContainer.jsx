@@ -10,10 +10,19 @@ const PROCESSING_STEPS = [
   { title: "Adding Metadata", description: "Final accessibility enhancements" },
   { title: "Generating Accessible PDF", description: "Creating your accessible PDF document" }
 ];
-
+/**
+ *
+ * @param {{
+ *  pendingFiles: { originalName: string, updatedName: string }[],
+ *  setPendingFiles: React.Dispatch<React.SetStateAction<null>>,
+ *  onAllFilesReady: () => void,
+ *  selectedFormat: string,
+ *  onNewUpload: () => void,
+ * }} param0
+ */
 const ProcessingContainer = ({
-  pendingFilenames,
-  setPendingFilenames,
+  pendingFiles,
+  setPendingFiles,
   onAllFilesReady,
   selectedFormat,
   onNewUpload
@@ -115,41 +124,41 @@ const ProcessingContainer = ({
         }
 
         const results = await Promise.all(
-          pendingFilenames.map(async (filename) => {
-            const objectKey = getObjectKey(filename);
+          pendingFiles.map(async ({ originalName, updatedName }) => {
+            const objectKey = getObjectKey(updatedName);
             // console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
             const params = new URLSearchParams({ key: objectKey, bucket: selectedBucket });
             const data = await apiFetch(`/file-status?${params.toString()}`, {
               method: 'GET',
             });
-            return { filename, objectKey, ready: data.ready };
+            return { updatedName, originalName, objectKey, ready: data.ready };
           })
         )
 
         const readyFiles = results.filter(r => r.ready);
-        const stillPending = results.filter(r => !r.ready).map(r => r.filename);
+        const stillPending = results.filter(r => !r.ready).map(({ updatedName, originalName }) => ({ originalName, updatedName }));
 
         const newEntries = [];
-        for (const { objectKey } of readyFiles) {
+        for (const { originalName, objectKey } of readyFiles) {
           const url = await downloadFile(objectKey, selectedBucket, true);
-          newEntries.push({ objectKey: objectKey.split('/').pop(), downloadUrl: url });
+          newEntries.push({ originalName, objectKey: objectKey.split('/').pop(), downloadUrl: url });
         }
-        
+
         if (!processedFiles) setProcessedFiles(newEntries)
         else setProcessedFiles((prev) => [...prev, ...newEntries]);
-        setPendingFilenames(stillPending);
+        setPendingFiles(stillPending);
 
         if (stillPending.length === 0) {
           setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
           onAllFilesReady([...processedFiles, ...newEntries]);
-  
+
           // Clear all intervals on success
           clearInterval(intervalId);
           clearInterval(timeIntervalId);
           clearInterval(stepIntervalId);
-  
+
           console.log('✅ File processing completed successfully!');
         } else {
           console.log(`⏳ File not ready yet (attempt ${pollingAttempts + 1}). Retrying in 15 seconds...`);
@@ -163,7 +172,7 @@ const ProcessingContainer = ({
       }
     };
 
-    if (pendingFilenames.length > 0 && !isDoneProcessing) {
+    if (pendingFiles.length > 0 && !isDoneProcessing) {
       // Reset polling attempts for new file
       setPollingAttempts(0);
 
@@ -186,7 +195,7 @@ const ProcessingContainer = ({
       clearInterval(timeIntervalId);
       clearInterval(stepIntervalId);
     };
-  }, [pendingFilenames, setPendingFilenames, isDoneProcessing, onAllFilesReady, apiFetch, downloadFile, selectedFormat, getObjectKey, processedFiles, pollingAttempts]);
+  }, [pendingFiles, setPendingFiles, isDoneProcessing, onAllFilesReady, apiFetch, downloadFile, selectedFormat, getObjectKey, processedFiles, pollingAttempts]);
 
   return (
     <div className="processing-container">

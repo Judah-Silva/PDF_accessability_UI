@@ -23,6 +23,7 @@ function MainApp() {
   // AWS & file states
   const [currentPage, setCurrentPage] = useState('upload');
   const [uploadedFiles, setUploadedFiles] = useState(null);
+  const [filesToProcess, setFilesToProcess] = useState(null);
   const [uploadedFilenames, setUploadedFilenames] = useState(null);
   const [originalFileNames, setOriginalFilenames] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
@@ -64,14 +65,13 @@ function MainApp() {
     const fileData = []
     for (let i = 0; i < updated_filenames.length; i++) {
       fileData.push({
-        name: original_fileNames[i],
-        updatedName: updated_filenames[i],
-        format: format,
-        size: 0 // We'll get this from the upload component if needed
+        originalName: original_fileNames[i],
+        updatedName: updated_filenames[i]
       });
     }
 
-    setUploadedFiles(fileData);
+    setUploadedFiles([...fileData]);
+    setFilesToProcess([...fileData]);
     setUploadedFilenames(updated_filenames);
     setOriginalFilenames(original_fileNames);
     setSelectedFormat(format);
@@ -85,7 +85,7 @@ function MainApp() {
 
   /**
    * 
-   * @param {{ objectKey: string, downloadUrl: string }[]} processedFiles 
+   * @param {{ originalName: string, objectKey: string, downloadUrl: string }[]} processedFiles
    */
   const handleProcessingComplete = (processedFiles) => {
     // Calculate processing time
@@ -145,8 +145,8 @@ function MainApp() {
 
             {currentPage === 'processing' && uploadedFiles && (
               <ProcessingContainer
-                pendingFilenames={uploadedFilenames}
-                setPendingFilenames={setUploadedFilenames}
+                pendingFiles={filesToProcess}
+                setPendingFiles={setFilesToProcess}
                 onAllFilesReady={(processedFiles) => handleProcessingComplete(processedFiles)}
                 selectedFormat={selectedFormat}
                 onNewUpload={handleNewUpload}
@@ -165,14 +165,12 @@ function MainApp() {
                 processedResult={processedResult}
                 format={selectedFormat}
                 processingTime={processedResult?.processingTime}
-                originalFileName={originalFileNames.length > 0 ? originalFileNames[0] : null}
-                updatedFilename={uploadedFilenames.length > 0 ? uploadedFilenames[0] : null}
+                originalFileName={originalFileNames.length === 1 ? originalFileNames[0] : null}
+                updatedFilename={uploadedFilenames.length === 1 ? uploadedFilenames[0] : null}
                 // resultFilename={processedResult?.finalName}
                 onNewUpload={handleNewUpload}
               />
             )}
-
-
           </Container>
 
           <Box sx={{ marginTop: 8 }}>

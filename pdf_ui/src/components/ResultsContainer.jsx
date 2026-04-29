@@ -43,7 +43,7 @@ const ResultsContainer = ({
       // console.log('Starting download for:', { fileName, format });
 
       // Use the download URL passed from ProcessingContainer
-      for (const { objectKey, downloadUrl } of processedResult.processedFiles) {
+      for (const { originalName, objectKey, downloadUrl } of processedResult.processedFiles) {
         if (!downloadUrl) {
           throw new Error('No download URL received');
         }
@@ -54,8 +54,7 @@ const ResultsContainer = ({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        // a.download = resultFilename ?? fileName;
-        a.download = objectKey ?? 'remediated_file.pdf';
+        a.download = originalName ?? objectKey;
         a.click();
   
         console.log('Download initiated successfully');
@@ -108,7 +107,9 @@ const ResultsContainer = ({
                   <img alt="" className="block max-w-none size-full" src={img2} />
                 </div>
                 <div className="file-details">
-                  {/* <div className="file-name">{fileName}</div> */}
+                  {originalFileName && (
+                    <div className="file-name">{originalFileName}</div>
+                  )}
                   <div className="file-status">File processed successfully</div>
                 </div>
               </div>
@@ -116,7 +117,7 @@ const ResultsContainer = ({
           </div>
 
           <div className="button-group">
-            {(format === 'pdf' && processedResult.processedFiles.length === 1) && (
+            {(format === 'pdf' && originalFileName) && (
               <button className="view-report-btn" onClick={() => setShowReportDialog(true)}>
                 View Report
               </button>
@@ -134,7 +135,7 @@ const ResultsContainer = ({
         </div>
 
       {/* Accessibility Report Dialog - Only for PDF-PDF format */}
-      {(format === 'pdf' && processedResult.processedFiles.length === 1) && (
+      {(format === 'pdf' && originalFileName) && (
         <AccessibilityChecker
           // originalFileName={originalFileName || fileName}
           originalFileName={originalFileName}
