@@ -22,28 +22,28 @@ export const CHAT_LEFT_PANEL_BACKGROUND = LIGHT;
 export const HEADER_BACKGROUND = DARK;
 export const primary_50 = '#F8E6EF';
 
-export const isMaintenanceMode = import.meta.REACT_APP_MAINTENANCE_MODE === 'true';
+export const isMaintenanceMode = import.meta.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
 export const SESSION_KEY = 'app_authenticated';
 export const SESSION_TOKEN_KEY = 'app_token';
 export const SESSION_USERNAME_KEY = 'app_username';
 
-// export const Authority = import.meta.REACT_APP_AUTHORITY;
-// export const region = import.meta.REACT_APP_AWS_REGION;
-// export const Bucket = import.meta.REACT_APP_BUCKET_NAME;
-// export const Bucket_Region = import.meta.REACT_APP_BUCKET_REGION;
+// export const Authority = import.meta.env.REACT_APP_AUTHORITY;
+// export const region = import.meta.env.REACT_APP_AWS_REGION;
+// export const Bucket = import.meta.env.REACT_APP_BUCKET_NAME;
+// export const Bucket_Region = import.meta.env.REACT_APP_BUCKET_REGION;
 
 // Separate buckets for different formats
-export const PDFBucket = import.meta.REACT_APP_PDF_BUCKET_NAME || 'Null';
-export const HTMLBucket = import.meta.REACT_APP_HTML_BUCKET_NAME || 'Null';
+export const PDFBucket = import.meta.env.REACT_APP_PDF_BUCKET_NAME || 'Null';
+export const HTMLBucket = import.meta.env.REACT_APP_HTML_BUCKET_NAME || 'Null';
 
 /**
  * Validate bucket configuration and return deployment status
  * @returns {Object} Validation result with deployment status and missing buckets
  */
 export const validateBucketConfiguration = () => {
-  const pdfBucketConfigured = import.meta.REACT_APP_PDF_BUCKET_NAME && import.meta.REACT_APP_PDF_BUCKET_NAME !== 'Null';
-  const htmlBucketConfigured = import.meta.REACT_APP_HTML_BUCKET_NAME && import.meta.REACT_APP_HTML_BUCKET_NAME !== 'Null';
+  const pdfBucketConfigured = import.meta.env.REACT_APP_PDF_BUCKET_NAME && import.meta.env.REACT_APP_PDF_BUCKET_NAME !== 'Null';
+  const htmlBucketConfigured = import.meta.env.REACT_APP_HTML_BUCKET_NAME && import.meta.env.REACT_APP_HTML_BUCKET_NAME !== 'Null';
 
   const needsFullDeployment = !pdfBucketConfigured && !htmlBucketConfigured;
   const missingBuckets = [];
@@ -67,12 +67,10 @@ export const validateBucketConfiguration = () => {
  * @returns {Object} Validation result for the specific format
  */
 export const validateFormatBucket = (format) => {
-  console.log(import.meta.REACT_APP_PDF_BUCKET_NAME);
-  console.log(process.env.REACT_APP_PDF_BUCKET_NAME);
   const isPdfFormat = format === 'pdf';
   const bucketConfigured = isPdfFormat
-    ? (import.meta.REACT_APP_PDF_BUCKET_NAME && import.meta.REACT_APP_PDF_BUCKET_NAME !== 'Null')
-    : (import.meta.REACT_APP_HTML_BUCKET_NAME && import.meta.REACT_APP_HTML_BUCKET_NAME !== 'Null');
+    ? (import.meta.env.REACT_APP_PDF_BUCKET_NAME && import.meta.env.REACT_APP_PDF_BUCKET_NAME !== 'Null')
+    : (import.meta.env.REACT_APP_HTML_BUCKET_NAME && import.meta.env.REACT_APP_HTML_BUCKET_NAME !== 'Null');
 
   return {
     isConfigured: bucketConfigured,
@@ -83,8 +81,8 @@ export const validateFormatBucket = (format) => {
   };
 };
 
-// export const DomainPrefix = import.meta.REACT_APP_DOMAIN_PREFIX;
-export const HostedUIUrl = import.meta.REACT_APP_HOSTED_UI_URL;
+// export const DomainPrefix = import.meta.env.REACT_APP_DOMAIN_PREFIX;
+export const HostedUIUrl = import.meta.env.REACT_APP_HOSTED_UI_URL;
 // export const IndentityPoolId = process.env.REACT_APP_IDENTITY_POOL_ID;
 
 // export const FirstSignInAPI = process.env.REACT_APP_UPDATE_FIRST_SIGN_IN;
