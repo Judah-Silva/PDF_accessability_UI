@@ -51,6 +51,7 @@ function UploadSection({ onUploadComplete }) {
   const { username } = useAuthContext();
   const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
+  const dragCounter = useRef(0);
 
   const [selectedFiles, setSelectedFiles] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
@@ -158,6 +159,8 @@ function UploadSection({ onUploadComplete }) {
 
   const handleFileDrop = (e) => {
     e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
     const droppedFiles = [...e.dataTransfer.files];
     if (droppedFiles.length) handleFileInput(droppedFiles);
   };
@@ -232,13 +235,19 @@ function UploadSection({ onUploadComplete }) {
 
   const handleDragEnter = (e) => {
     e.preventDefault();
+    dragCounter.current++;
     setIsDragging(true);
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
-    setIsDragging(false);
+    if (--dragCounter.current <= 0) setIsDragging(false);
   }
+
+  const handleDragEnd = (e) => {
+    dragCounter.current = 0;
+    setIsDragging(false);
+  };
 
 
   if (selectedFormat === 'pdf' || selectedFormat === 'html') {
@@ -331,6 +340,7 @@ function UploadSection({ onUploadComplete }) {
           onDragOver={(e) => e.preventDefault()}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
+          onDragEnd={handleDragEnd}
           >
           <div className="upload-content">
             <div className="upload-header">
@@ -343,7 +353,7 @@ function UploadSection({ onUploadComplete }) {
             </div>
 
             <div className="upload-instructions">
-              <p className="upload-main-text">{isDragging ? 'Drop your PDFs here or click to browse' : 'Release to upload PDFs'}</p>
+              <p className="upload-main-text">{isDragging ?  'Release to upload PDFs' : 'Drop your PDFs here or click to browse'}</p>
             </div>
 
             {errorMessage && (

@@ -21,8 +21,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "7.28.6",
-    "@vitejs/plugin-react": "^6.0.1",
-    "dotenv": "17.4.2"
+    "@vitejs/plugin-react": "^6.0.1"
   },
   "scripts": {
     "start": "vite",
