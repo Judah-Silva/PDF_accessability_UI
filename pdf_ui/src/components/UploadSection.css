@@ -50,12 +50,6 @@
   box-sizing: border-box;
 }
 
-.drag-active {
-  border: 2px dashed #8c1d40;
-  background-color: rgba(47, 55, 69, 0.5); /* or whatever fits your theme */
-  opacity: 0.8;
-}
-
 @media (max-width: 768px) {
   .upload-container-selected {
     max-width: 100%;
@@ -84,6 +78,11 @@
   justify-content: flex-start;
   width: 100%;
   box-sizing: border-box;
+}
+
+.drag-active .upload-content {
+  border: 2px dashed #8c1d40;
+  /* opacity: 0.8; */
 }
 
 @media (max-width: 768px) {
