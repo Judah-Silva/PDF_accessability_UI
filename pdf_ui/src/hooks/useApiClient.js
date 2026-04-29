@@ -16,7 +16,7 @@ export function useApiClient() {
 
     let res;
     try {
-      res = await fetch(`${process.env.REACT_APP_API_BASE}${path}`, {
+      res = await fetch(`${import.meta.env.REACT_APP_API_BASE}${path}`, {
         ...options,
         headers: {
           'Content-Type': 'application/json',

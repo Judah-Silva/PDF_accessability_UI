@@ -57,7 +57,7 @@ function AppRoutes() {
 }
 
 function App() {
-  if (process.env.REACT_APP_PREVIEW_MODE === 'true') {
+  if (import.meta.env.REACT_APP_PREVIEW_MODE === 'true') {
     return <PreviewApp />;
   }
 

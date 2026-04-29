@@ -93,7 +93,7 @@ const LandingPage = () => {
     const usernameParam = username.trim().split('@')[0]
 
     try {
-      const res = await fetch(`${process.env.REACT_APP_API_BASE}/auth/login`, {
+      const res = await fetch(`${import.meta.env.REACT_APP_API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: usernameParam }),

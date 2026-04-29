@@ -56,6 +56,7 @@ function UploadSection({ onUploadComplete }) {
   const [selectedFormat, setSelectedFormat] = useState(null);
   const [fileSizeMB, setFileSizeMB] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [formatAvailability, setFormatAvailability] = useState({ pdf: false, html: false });
@@ -117,22 +118,10 @@ function UploadSection({ onUploadComplete }) {
       }
     }
 
-    // if (file.size > maxSizeAllowedMB * 1024 * 1024) {
-    //   setErrorMessage(`File size exceeds the ${maxSizeAllowedMB} MB limit.`);
-    //   setOpenSnackbar(true);
-    //   resetFileInput();
-    //   return;
-    // }
-
     // **2. Page Count Check with pdf-lib**
     try {
       setSelectedFiles(inputFiles);
-      // console.log('File object details:', {
-      //   name: file.name,
-      //   size: file.size,
-      //   type: file.type,
-      //   lastModified: file.lastModified
-      // });
+
       if (inputFiles.length === 1) {
         const file = inputFiles[0];
         const sizeInBytes = file.size || 0;
@@ -183,27 +172,14 @@ function UploadSection({ onUploadComplete }) {
       return;
     }
 
-    // **2. Check if user has reached the upload limit**
-    // if (currentUsage >= maxFilesAllowed) {
-    //   setErrorMessage('You have reached your upload limit. Please contact support for further assistance.');
-    //   setOpenSnackbar(true);
-    //   return;
-    // }
-
     // **3. Basic Guards**
     if (!file) {
       setErrorMessage('Please select a PDF file before uploading.');
       setOpenSnackbar(true);
       return;
     }
-    // if (!awsCredentials) {
-    //   setErrorMessage('AWS credentials not available yet. Please wait...');
-    //   setOpenSnackbar(true);
-    //   return;
-    // }
 
     // **3. Attempt to Increment Usage First**
-    // const idToken = auth.user?.id_token;
     setIsUploading(true);
 
     try {
@@ -212,10 +188,6 @@ function UploadSection({ onUploadComplete }) {
       const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumerics with underscores
       const sanitizedFileName = sanitizeFilename(file.name, selectedFormat) || 'default.pdf'; // Fallback to 'default.pdf' if sanitization fails
       const uniqueFilename = `${sanitizedEmail}_${timestamp}_${sanitizedFileName}`; // Combined unique filename
-
-      // Select bucket and directory based on format
-      // const selectedBucket = selectedFormat === 'html' ? HTMLBucket : PDFBucket;
-      // const keyPrefix = selectedFormat === 'html' ? 'uploads/' : 'pdf/';
 
       const { uploadUrl } = await apiFetch('/upload', {
         method: 'POST',
@@ -240,18 +212,7 @@ function UploadSection({ onUploadComplete }) {
         throw new Error('S3 upload failed.')
       }
 
-      // const command = new PutObjectCommand(params);
-      // await client.send(command);
-
       console.log('File uploaded, new file name:', uniqueFilename);
-
-      // **6. Notify Parent of Completion with format**
-      // onUploadComplete(uniqueFilename, sanitizedFileName, selectedFormat || 'pdf');
-      
-      // **7. Refresh Usage**
-      // if (onUsageRefresh) {
-        //   onUsageRefresh();
-      // }
         
       return { uniqueFilename, sanitizedFileName };
       // **8. Don't reset automatically - let parent component handle flow**
@@ -268,6 +229,16 @@ function UploadSection({ onUploadComplete }) {
     if (reason === 'clickaway') return;
     setOpenSnackbar(false);
   };
+
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  }
 
 
   if (selectedFormat === 'pdf' || selectedFormat === 'html') {
@@ -355,9 +326,11 @@ function UploadSection({ onUploadComplete }) {
         transition={{ duration: 0.5 }}
       >
         <div
-          className="upload-container-selected"
+          className={`upload-container-selected ${isDragging ? 'drag-active' : ''}`}
           onDrop={handleFileDrop}
           onDragOver={(e) => e.preventDefault()}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
           >
           <div className="upload-content">
             <div className="upload-header">
@@ -370,8 +343,7 @@ function UploadSection({ onUploadComplete }) {
             </div>
 
             <div className="upload-instructions">
-              <p className="upload-main-text">Drop your PDFs here or click to browse</p>
-              {/* <p className="upload-sub-text">Maximum file size: {maxSizeAllowedMB}MB • Maximum pages: {maxPagesAllowed}</p> */}
+              <p className="upload-main-text">{isDragging ? 'Drop your PDFs here or click to browse' : 'Release to upload PDFs'}</p>
             </div>
 
             {errorMessage && (
