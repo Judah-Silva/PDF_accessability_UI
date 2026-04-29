@@ -67,6 +67,8 @@ export const validateBucketConfiguration = () => {
  * @returns {Object} Validation result for the specific format
  */
 export const validateFormatBucket = (format) => {
+  console.log(import.meta.REACT_APP_PDF_BUCKET_NAME);
+  console.log(process.env.REACT_APP_PDF_BUCKET_NAME);
   const isPdfFormat = format === 'pdf';
   const bucketConfigured = isPdfFormat
     ? (import.meta.REACT_APP_PDF_BUCKET_NAME && import.meta.REACT_APP_PDF_BUCKET_NAME !== 'Null')
