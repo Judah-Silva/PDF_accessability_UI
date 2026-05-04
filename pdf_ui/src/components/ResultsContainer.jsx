@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
+import JSZip from 'jszip';
 import './ResultsContainer.css';
 import img1 from "../assets/zap.svg";
 import img2 from "../assets/pdf-icon.svg";
 import AccessibilityChecker from './AccessibilityChecker';
 
+/**
+ *
+ * @param {{
+ *  processedFiles: { originalName: string, objectKey: string, downloadUrl: string }[],
+ *  format: string,
+ *  processingTime: number,
+ *  originalFileName: string | null,
+ *  updatedFilename: string | null,
+ *  onNewUpload: () => void,
+ * }}
+ * @returns
+ */
 const ResultsContainer = ({
   // fileName,
-  processedResult,
+  processedFiles,
   format,
   processingTime,
   originalFileName,
@@ -32,34 +45,56 @@ const ResultsContainer = ({
   };
 
   const handleDownload = async () => {
-    // if (!processedResult || !format || !fileName) {
-    if (!processedResult || !format) {
+    if (!processedFiles || !format) {
       alert('Download information not available');
       return;
     }
 
     setIsDownloading(true);
     try {
-      // console.log('Starting download for:', { fileName, format });
-
-      // Use the download URL passed from ProcessingContainer
-      for (const { originalName, objectKey, downloadUrl } of processedResult.processedFiles) {
+      // Single file upload
+      if (originalFileName) {
+        const { originalName, objectKey, downloadUrl } = processedFiles[0];
         if (!downloadUrl) {
           throw new Error('No download URL received');
         }
+        const downloadName = objectKey.endsWith('.zip') ? objectKey : originalName;
 
         const res = await fetch(downloadUrl);
         const blob = await res.blob();
-  
+
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = originalName ?? objectKey;
+        a.download = downloadName;
         a.click();
   
         console.log('Download initiated successfully');
         URL.revokeObjectURL(url);
+        return;
       }
+
+      // Bulk upload to zip files
+      const zip = new JSZip();
+
+      await Promise.all(
+        processedFiles.map(async ({ originalName, objectKey, downloadUrl }) => {
+          const downloadName = objectKey.endsWith('.zip') ? objectKey : originalName;
+          const res = await fetch(downloadUrl);
+          const blob = await res.blob();
+          zip.file(downloadName, blob);
+        })
+      )
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'remediated_files.zip';
+      a.click();
+
+      console.log('Download initiated successfully');
+      URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
 
@@ -110,7 +145,7 @@ const ResultsContainer = ({
                   {originalFileName && (
                     <div className="file-name">{originalFileName}</div>
                   )}
-                  <div className="file-status">File processed successfully</div>
+                  <div className="file-status">{`File${originalFileName ? '' : 's'} processed successfully`}</div>
                 </div>
               </div>
             </div>
@@ -125,10 +160,10 @@ const ResultsContainer = ({
             <button
               className="download-btn"
               onClick={handleDownload}
-              disabled={isDownloading || !processedResult}
+              disabled={isDownloading || !processedFiles}
               title={isDownloading ? 'Downloading...' : 'Download the processed files'}
             >
-              {isDownloading ? 'Downloading...' : `Download ${format === 'html' ? 'ZIP' : 'PDF'} File`}
+              {isDownloading ? 'Downloading...' : `Download ${(format === 'html' || !originalFileName) ? 'ZIP' : 'PDF'} File`}
             </button>
           </div>
 

@@ -162,7 +162,7 @@ function MainApp() {
             {currentPage === 'results' && (
               <ResultsContainer
                 // fileName={uploadedFile?.name}
-                processedResult={processedResult}
+                processedFiles={processedResult?.processedFiles}
                 format={selectedFormat}
                 processingTime={processedResult?.processingTime}
                 originalFileName={originalFileNames.length === 1 ? originalFileNames[0] : null}

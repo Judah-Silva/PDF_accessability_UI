@@ -11,13 +11,14 @@
     "@testing-library/react": "^16.1.0",
     "country-state-city": "^3.2.1",
     "framer-motion": "^11.16.4",
+    "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "react": "^19.0.0",
     "react-country-state-city": "^1.1.8",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.1",
-    "web-vitals": "^4.2.4",
-    "vite": "^8.0.10"
+    "vite": "^8.0.10",
+    "web-vitals": "^4.2.4"
   },
   "devDependencies": {
     "@babel/plugin-transform-private-property-in-object": "7.28.6",
