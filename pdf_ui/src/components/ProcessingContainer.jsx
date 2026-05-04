@@ -151,7 +151,6 @@ const ProcessingContainer = ({
         setPendingFiles(stillPending);
 
         if (stillPending.length === 0) {
-          throw new Error('testing');
           setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
