@@ -168,7 +168,7 @@ const ProcessingContainer = ({
         }
       } catch (error) {
         // TODO: Show message to user that something went wrong
-        console.error('Error during file polling.');
+        console.error('Error during file polling: ', error);
       }
     };
 
