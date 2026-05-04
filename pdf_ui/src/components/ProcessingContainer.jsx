@@ -33,6 +33,8 @@ const ProcessingContainer = ({
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pollingAttempts, setPollingAttempts] = useState(0);
 
+  const [errorMessage, setErrorMessage] = useState('');
+
   const { apiFetch, downloadFile } = useApiClient();
 
   // Function to truncate the filename if it exceeds the threshold
@@ -152,7 +154,7 @@ const ProcessingContainer = ({
           setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
-          onAllFilesReady([...(processedFiles ?? []), ...(newEntries ?? [])]);
+          onAllFilesReady([...processedFiles, ...(newEntries ?? [])]);
 
           // Clear all intervals on success
           clearInterval(intervalId);
@@ -169,6 +171,10 @@ const ProcessingContainer = ({
       } catch (error) {
         // TODO: Show message to user that something went wrong
         console.error('Error during file polling.');
+        setErrorMessage('Something went wrong while processing your files. Please try again.');
+        clearInterval(intervalId);
+        clearInterval(timeIntervalId);
+        clearInterval(stepIntervalId);
       }
     };
 
@@ -221,6 +227,18 @@ const ProcessingContainer = ({
             }
           </p>
         </div>
+
+        {errorMessage && (
+          <div className='processing-error'>
+            <p>{errorMessage}</p>
+            <button className="upload-new-btn" onClick={() => {
+              setErrorMessage('');
+              setIsDoneProcessing(false);
+            }}>
+              Retry
+            </button>
+          </div>
+        )}
 
         {!isDoneProcessing && (
           <div className="progress-section">
