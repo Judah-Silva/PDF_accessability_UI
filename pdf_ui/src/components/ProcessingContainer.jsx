@@ -229,18 +229,6 @@ const ProcessingContainer = ({
           </p>
         </div>
 
-        {errorMessage && (
-          <div className='processing-error'>
-            <p>{errorMessage}</p>
-            <button className="upload-new-btn" onClick={() => {
-              setErrorMessage('');
-              setIsDoneProcessing(false);
-            }}>
-              Retry
-            </button>
-          </div>
-        )}
-
         {!isDoneProcessing && (
           <div className="progress-section">
             <div className="steps-list">
@@ -259,7 +247,19 @@ const ProcessingContainer = ({
           </div>
         )}
 
+        {errorMessage && (
+          <div className='processing-error'>
+            <p>{errorMessage}</p>
+            <button className="upload-new-btn" onClick={() => {
+              setErrorMessage('');
+              onNewUpload();
+            }}>
+              Retry
+            </button>
+          </div>
+        )}
       </div>
+
 
     </div>
   );
