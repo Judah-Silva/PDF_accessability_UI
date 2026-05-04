@@ -254,7 +254,7 @@ const ProcessingContainer = ({
               setErrorMessage('');
               onNewUpload();
             }}>
-              Retry
+              Back
             </button>
           </div>
         )}

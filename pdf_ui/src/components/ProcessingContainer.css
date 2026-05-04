@@ -179,9 +179,10 @@
   font-size: 14px;
   line-height: 20px;
   color: #dc2626;
-  margin: 0;
+  margin: 0 16px;
+  box-sizing: border-box;
   text-align: center;
-  width: 100%;
+  width: auto;
 }
 
 .upload-new-section {
