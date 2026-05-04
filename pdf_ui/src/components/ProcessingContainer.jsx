@@ -152,7 +152,7 @@ const ProcessingContainer = ({
           setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
-          onAllFilesReady([...processedFiles, ...newEntries]);
+          onAllFilesReady([...(processedFiles ?? []), ...(newEntries ?? [])]);
 
           // Clear all intervals on success
           clearInterval(intervalId);
@@ -168,7 +168,7 @@ const ProcessingContainer = ({
         }
       } catch (error) {
         // TODO: Show message to user that something went wrong
-        console.error('Error during file polling: ', error);
+        console.error('Error during file polling.');
       }
     };
 
