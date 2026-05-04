@@ -132,7 +132,7 @@ const ResultsContainer = ({
               <img alt="" className="block max-w-none size-full" src={img1} />
               <span>Total Processing Time: {formatProcessingTime(processingTime)}</span>
             </div>
-            <p className="description">Your PDF has been successfully remediated for accessibility</p>
+            <p className="description">{`Your PDF${originalFileName ? '' : 's'} ha${originalFileName ? 's' : 've'} been successfully remediated for accessibility`}</p>
           </div>
 
           <div className="file-success-container">

@@ -396,7 +396,7 @@ const LandingPage = () => {
 
           <Typography variant="body2" component="p" paragraph>
             1. <strong>Upload a Document:</strong> Once you are logged in,
-            simply select a PDF to upload for remediation.
+            simply select a PDF or multiple PDFs to upload for remediation.
           </Typography>
           <Typography variant="body2" component="p" paragraph>
             2. <strong>Remediation:</strong> We use an automated approach,

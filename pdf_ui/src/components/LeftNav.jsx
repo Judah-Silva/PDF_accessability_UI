@@ -106,7 +106,7 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
               - Do not <strong>bulk upload</strong> documents.
             </Typography> */}
             <Typography variant="body2" gutterBottom>
-              - Complete remediation for <strong>one document</strong> before adding a new one.
+              - Complete remediation for <strong>one set of documents</strong> before adding a new one.
             </Typography>
             <Typography variant="body2" gutterBottom>
               - This solution only remediates <strong>PDF documents</strong>. Other document types will not be accepted.
