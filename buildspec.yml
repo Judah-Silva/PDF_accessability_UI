@@ -29,6 +29,9 @@ phases:
         if [ -n "${PDF_TO_HTML_BUCKET:-}" ] && [ "${PDF_TO_HTML_BUCKET}" != "Null" ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c PDF_TO_HTML_BUCKET=$PDF_TO_HTML_BUCKET"
         fi
+        if [ -n "${COGNITO_ID:-}" ] && [ "${COGNITO_ID}" != 'Null' ]; then
+          CDK_CONTEXT="$CDK_CONTEXT -c COGNITO_ID=$COGNITO_ID"
+        fi
         cdk deploy --all --require-approval never $CDK_CONTEXT
 
 
