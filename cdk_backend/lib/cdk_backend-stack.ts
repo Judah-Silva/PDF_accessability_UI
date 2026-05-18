@@ -14,7 +14,8 @@ export class CdkBackendStack extends cdk.Stack {
     
     const PDF_TO_PDF_BUCKET = this.node.tryGetContext('PDF_TO_PDF_BUCKET');
     const PDF_TO_HTML_BUCKET = this.node.tryGetContext('PDF_TO_HTML_BUCKET');
-    const COGNITO_ID = this.node.tryGetContext('COGNITO_ID');
+    const COGNITO_CLIENT_ID = this.node.tryGetContext('COGNITO_ID');
+    const COGNITO_USER_POOL_ID = this.node.tryGetContext('COGNITO_USER_POOL_ID');
 
     // Validate that at least one bucket is provided
     if (!PDF_TO_PDF_BUCKET && !PDF_TO_HTML_BUCKET) {
@@ -82,7 +83,7 @@ export class CdkBackendStack extends cdk.Stack {
     const customUrl = 'https://pdf.hartnell.edu';
     const cognitoDomain = `pdfui.auth.${this.region}.amazoncognito.com`;
     const cognitoCallback = `${customUrl}/callback`;
-    const cognitoUserPool = cognito.UserPool.fromUserPoolId(this, 'PDF-Accessability-User-Pool', COGNITO_ID);
+    const cognitoUserPool = cognito.UserPool.fromUserPoolId(this, 'PDF-Accessability-User-Pool', COGNITO_USER_POOL_ID);
     const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
       cognitoUserPools: [cognitoUserPool],
     });
@@ -327,7 +328,7 @@ export class CdkBackendStack extends cdk.Stack {
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', customUrl);
     mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
     mainBranch.addEnvironment('REACT_APP_COGNITO_DOMAIN', cognitoDomain);
-    mainBranch.addEnvironment('REACT_APP_COGNITO_CLIENT_ID', COGNITO_ID);
+    mainBranch.addEnvironment('REACT_APP_COGNITO_CLIENT_ID', COGNITO_CLIENT_ID);
     mainBranch.addEnvironment('REACT_APP_REDIRECT_URI', cognitoCallback);
 
     // --------------------------- Outputs ------------------------------
