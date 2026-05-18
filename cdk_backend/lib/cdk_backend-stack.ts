@@ -3,7 +3,7 @@ import { Construct } from 'constructs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as amplify from '@aws-cdk/aws-amplify-alpha';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as dynamo from 'aws-cdk-lib/aws-dynamodb'
+import * as cognito from 'aws-cdk-lib/aws-cognito'
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cr from 'aws-cdk-lib/custom-resources';
@@ -14,6 +14,8 @@ export class CdkBackendStack extends cdk.Stack {
     
     const PDF_TO_PDF_BUCKET = this.node.tryGetContext('PDF_TO_PDF_BUCKET');
     const PDF_TO_HTML_BUCKET = this.node.tryGetContext('PDF_TO_HTML_BUCKET');
+    const COGNITO_CLIENT_ID = this.node.tryGetContext('COGNITO_ID');
+    const COGNITO_USER_POOL_ID = this.node.tryGetContext('COGNITO_USER_POOL_ID');
 
     // Validate that at least one bucket is provided
     if (!PDF_TO_PDF_BUCKET && !PDF_TO_HTML_BUCKET) {
@@ -77,11 +79,14 @@ export class CdkBackendStack extends cdk.Stack {
       status: amplify.RedirectStatus.REWRITE
     }));
 
-    const domainPrefix = `pdf-ui-auth-${this.account}-${this.region}`; // must be globally unique in that region
-    // const Default_Group = 'DefaultUsers';
-    // const Amazon_Group = 'AmazonUsers';
-    // const Admin_Group = 'AdminUsers';
     const appUrl = `https://main.${amplifyApp.appId}.amplifyapp.com`;
+    const customUrl = 'https://pdf.hartnell.edu';
+    const cognitoDomain = `pdfui.auth.${this.region}.amazoncognito.com`;
+    const cognitoCallback = `${customUrl}/callback`;
+    const cognitoUserPool = cognito.UserPool.fromUserPoolId(this, 'PDF-Accessability-User-Pool', COGNITO_USER_POOL_ID);
+    const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'CognitoAuthorizer', {
+      cognitoUserPools: [cognitoUserPool],
+    });
 
     // --------- Set CORS on imported S3 buckets via custom resource ----------
     const corsConfiguration = {
@@ -89,7 +94,7 @@ export class CdkBackendStack extends cdk.Stack {
         {
           AllowedHeaders: ['*'],
           AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD'],
-          AllowedOrigins: [appUrl, 'http://localhost:3000'],
+          AllowedOrigins: [appUrl, customUrl, 'http://localhost:3000'],
           ExposeHeaders: ['ETag'],
           MaxAgeSeconds: 3600,
         },
@@ -156,71 +161,6 @@ export class CdkBackendStack extends cdk.Stack {
       console.log(`CORS configured for HTML bucket: ${htmlBucket.bucketName}`);
     }
 
-    const dynamoStateTable = 'UserStateTable';
-
-    // ------------------- Lambda: UserAuth, UserRefresh, UserUpload -------------------
-
-    // Create the Lambda role first with necessary permissions
-    const userAuthLambdaRole = new iam.Role(this, 'UserAuthLambdaRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-    });
-
-    // Grant CloudWatch Logs permissions
-    userAuthLambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-    );
-    
-    // Create the Lambda with the role
-    const userAuthLambda = new lambda.Function(this, 'UserAuthLambda', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/userAuth/'),
-      timeout: cdk.Duration.seconds(30),
-      role: userAuthLambdaRole,
-      environment: {
-        FRONTEND_ORIGIN: appUrl,
-        DYNAMO_STATE_TABLE: dynamoStateTable,
-        DUO_CLIENT_ID: "",
-        DUO_CLIENT_SECRET: "",
-        DUO_API_HOST: "",
-        DUO_REDIRECT_URL: "",
-      }
-    })
-
-    console.log(`Created UserAuthLambda: ${userAuthLambda.functionName}`);
-    
-    // Create the Lambda role first with necessary permissions
-    const authCallbackLambdaRole = new iam.Role(this, 'AuthCallbackLambdaRole', {
-      assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
-    });
-    
-    // Grant CloudWatch Logs permissions
-    authCallbackLambdaRole.addManagedPolicy(
-      iam.ManagedPolicy.fromAwsManagedPolicyName('service-role/AWSLambdaBasicExecutionRole')
-    );
-    
-    // Create the Lambda with the role
-    const authCallbackLambda = new lambda.Function(this, 'AuthCallbackLambda', {
-      runtime: lambda.Runtime.NODEJS_22_X,
-      handler: 'index.handler',
-      code: lambda.Code.fromAsset('lambda/authCallback/'),
-      timeout: cdk.Duration.seconds(30),
-      role: authCallbackLambdaRole,
-      environment: {
-        DYNAMO_STATE_TABLE: dynamoStateTable,
-        FRONTEND_ORIGIN: appUrl,
-        JWT_PRIVATE_KEY: "",
-        JWT_ISSUER: "",
-        JWT_AUDIENCE: "",
-        DUO_CLIENT_ID: "",
-        DUO_CLIENT_SECRET: "",
-        DUO_API_HOST: "",
-        DUO_REDIRECT_URL: "",
-      }
-    })
-
-    console.log(`Created authCallbackLambda: ${authCallbackLambda.functionName}`);
-    
     const userUploadLambdaRole = new iam.Role(this, 'UserUploadLambdaRole', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com'),
     })
@@ -240,9 +180,6 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
-        JWT_PUBLIC_KEY: "",
-        JWT_ISSUER: "",
-        JWT_AUDIENCE: "",
       }
     })
 
@@ -267,9 +204,6 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
-        JWT_PUBLIC_KEY: "",
-        JWT_ISSUER: "",
-        JWT_AUDIENCE: "",
       }
     })
 
@@ -294,48 +228,23 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
-        JWT_PUBLIC_KEY: "",
-        JWT_ISSUER: "",
-        JWT_AUDIENCE: "",
       }
     })
 
-    // fileStatusLambda.addToRolePolicy(new iam.PolicyStatement({
-    //   effect: iam.Effect.ALLOW,
-    //   actions: ['s3:GetObject', 's3:HeadObject', 's3:ListBucket'],
-    //   resources: [
-    //     ...(pdfBucket  ? [pdfBucket.bucketArn,  `${pdfBucket.bucketArn}/*`]  : []),
-    //     ...(htmlBucket ? [htmlBucket.bucketArn, `${htmlBucket.bucketArn}/*`] : []),
-    //   ]
-    // }))
-
     console.log(`Created fileStatusLambda: ${fileStatusLambda.functionName}`);
-
-    //  ------------------- DynamoDB: StateTable, RefreshTable -------------------
-    const stateTable = new dynamo.TableV2(this, 'UserStateTable', {
-      tableName: 'UserStateTable',
-      partitionKey: { name: 'state', type: dynamo.AttributeType.STRING },
-      billing: dynamo.Billing.onDemand(),
-      timeToLiveAttribute: 'ttl',
-    });
-
-    console.log(`Created DynamoDB StateTable: ${stateTable.tableName}`);
-    
-    stateTable.grantReadWriteData(userAuthLambda);
-    stateTable.grantReadWriteData(authCallbackLambda);
 
     // Create S3 policy for both buckets
     if (pdfBucket) {
       pdfBucket.grantPut(userUploadLambda);
       pdfBucket.grantRead(userDownloadLambda);
       pdfBucket.grantRead(fileStatusLambda);
-      console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`);
+      console.log(`Granting PDF-PDF Bucket PUT/READ permissions.`);
     }
     if (htmlBucket) {
       htmlBucket.grantPut(userUploadLambda);
       htmlBucket.grantRead(userDownloadLambda);
       htmlBucket.grantRead(fileStatusLambda);
-      console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`);
+      console.log(`Granting PDF-HTML Bucket PUT/READ permissions.`);
     }
 
     // ------------------- Lambda Function API Gateways -------------------
@@ -343,10 +252,10 @@ export class CdkBackendStack extends cdk.Stack {
     //  Create API Gateway for lambda functions
     const pdfRemediationAPI = new apigateway.RestApi(this, 'PdfRemediationAPI', {
       restApiName: 'PdfRemediationAPI',
-      description: 'API for authentication and file upload signing lambdas.',
+      description: 'API file transaction lambdas.',
       endpointTypes: [apigateway.EndpointType.REGIONAL],
       defaultCorsPreflightOptions: {
-        allowOrigins: [appUrl, 'http://localhost:3000'],
+        allowOrigins: [appUrl, customUrl, 'http://localhost:3000'],
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type, Authorization'],
         allowCredentials: true,
@@ -360,37 +269,34 @@ export class CdkBackendStack extends cdk.Stack {
       },
     });
 
-    // Create routes
-    const auth = pdfRemediationAPI.root.addResource('auth');
-
-    // POST /auth/login
-    auth.addResource('login').addMethod(
-      'POST',
-      new apigateway.LambdaIntegration(userAuthLambda),
-    );
-
-    // GET /auth/callback
-    auth.addResource('callback').addMethod(
-      'GET',
-      new apigateway.LambdaIntegration(authCallbackLambda),
-    );
-
     // POST /upload
     pdfRemediationAPI.root.addResource('upload').addMethod(
       'POST',
       new apigateway.LambdaIntegration(userUploadLambda),
+      {
+        authorizer: cognitoAuthorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
     );
 
     // POST /download
     pdfRemediationAPI.root.addResource('download').addMethod(
       'POST',
       new apigateway.LambdaIntegration(userDownloadLambda),
+      {
+        authorizer: cognitoAuthorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
     )
 
     // GET /file-status
     pdfRemediationAPI.root.addResource('file-status').addMethod(
       'GET',
       new apigateway.LambdaIntegration(fileStatusLambda),
+      {
+        authorizer: cognitoAuthorizer,
+        authorizationType: apigateway.AuthorizationType.COGNITO,
+      }
     )
 
     const usagePlan = pdfRemediationAPI.addUsagePlan('DefaultUsagePlan', {
@@ -418,13 +324,13 @@ export class CdkBackendStack extends cdk.Stack {
     if (PDF_TO_HTML_BUCKET) {
       mainBranch.addEnvironment('REACT_APP_HTML_BUCKET_NAME', PDF_TO_HTML_BUCKET);
     }
-    
-    mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', appUrl);
-    mainBranch.addEnvironment('REACT_APP_DOMAIN_PREFIX', domainPrefix);
 
+    mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', customUrl);
     mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
-    
-   
+    mainBranch.addEnvironment('REACT_APP_COGNITO_DOMAIN', cognitoDomain);
+    mainBranch.addEnvironment('REACT_APP_COGNITO_CLIENT_ID', COGNITO_CLIENT_ID);
+    mainBranch.addEnvironment('REACT_APP_REDIRECT_URI', cognitoCallback);
+
     // --------------------------- Outputs ------------------------------
     new cdk.CfnOutput(this, 'AmplifyAppId', {
       value: amplifyApp.appId,
@@ -432,7 +338,7 @@ export class CdkBackendStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'AmplifyAppURL', {
-      value: appUrl,
+      value: customUrl,
       description: 'Amplify Application URL',
     });
 
