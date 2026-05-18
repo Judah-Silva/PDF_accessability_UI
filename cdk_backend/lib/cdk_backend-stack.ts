@@ -14,11 +14,8 @@ export class CdkBackendStack extends cdk.Stack {
     
     const PDF_TO_PDF_BUCKET = this.node.tryGetContext('PDF_TO_PDF_BUCKET');
     const PDF_TO_HTML_BUCKET = this.node.tryGetContext('PDF_TO_HTML_BUCKET');
-    const COGNITO_CLIENT_ID = this.node.tryGetContext('COGNITO_ID');
+    const COGNITO_CLIENT_ID = this.node.tryGetContext('COGNITO_CLIENT_ID');
     const COGNITO_USER_POOL_ID = this.node.tryGetContext('COGNITO_USER_POOL_ID');
-
-    console.log(COGNITO_CLIENT_ID);
-    console.log(COGNITO_USER_POOL_ID);
 
     // Validate that at least one bucket is provided
     if (!PDF_TO_PDF_BUCKET && !PDF_TO_HTML_BUCKET) {
