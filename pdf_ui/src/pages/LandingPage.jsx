@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useAuthContext } from '../context/AuthContext';
+import { useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 
 // MUI Components
@@ -11,7 +11,6 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
-  TextField,
 } from '@mui/material';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -23,7 +22,7 @@ import CloseIcon from '@mui/icons-material/Close';
 // Images
 import bottomGradient from '../assets/bottom_gradient.svg';
 import hartnellLogo from '../assets/hartnell-logo.svg';
-import { PRIMARY_MAIN } from '../utilities/constants';
+import { COGNITO_IDP_NAME, PRIMARY_MAIN } from '../utilities/constants';
 
 // Styled Components
 import { styled } from '@mui/system';
@@ -52,16 +51,8 @@ const GradientBox = styled(Box)(({ theme }) => ({
 }));
 
 const LandingPage = () => {
-  const { isAuthenticated, isLoading } = useAuthContext();
-  // const auth = authContext ?? {
-  //   isLoading: false,
-  //   isAuthenticated: false,
-  //   signinRedirect: () => {},
-  // };
+  const auth = useAuth();
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [loginError, setLoginError] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
 
   // check for error param from Duo callback redirect
@@ -75,45 +66,19 @@ const LandingPage = () => {
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
-    if (isAuthenticated) {
+    if (auth.isLoading) return;
+    if (auth.isAuthenticated) {
       navigate('/app', { replace: true });
     }
-  }, [isLoading, isAuthenticated, navigate]);
+  }, [auth.isLoading, auth.isAuthenticated, navigate]);
 
   const handleSignIn = async (e) => {
     e.preventDefault();
-    if (!username.trim()) {
-      return;
-    }
-
-    setLoading(true);
-    setLoginError('');
-
-    const usernameParam = username.trim().split('@')[0]
-
-    try {
-      const res = await fetch(`${import.meta.env.REACT_APP_API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: usernameParam }),
-      });
- 
-      if (!res.ok) {
-        setLoginError('Login unavailable. Please try again.');
-        return;
+    auth.signinRedirect({
+      extraQueryParams: {
+        identity_provider: COGNITO_IDP_NAME,
       }
- 
-      const { authUrl } = await res.json();
- 
-      // hand off to Duo — userCallback Lambda handles the rest
-      window.location.href = authUrl;
- 
-    } catch {
-      setLoginError('Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleOpenDialog = () => {
@@ -124,7 +89,7 @@ const LandingPage = () => {
     setOpenDialog(false);
   };
 
-  if (isLoading) {
+  if (auth.isLoading) {
     return (
       <Box
         sx={{
@@ -241,43 +206,12 @@ const LandingPage = () => {
               READY TO TRANSFORM YOUR PDF?
             </Typography>
 
-            {/* Email input */}
-            <TextField
-              type="email"
-              placeholder="Enter your email"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              required
-              disabled={loading}
-              fullWidth
-              size="small"
-              inputProps={{ maxLength: 255 }}
-              sx={{
-                backgroundColor: '#fff',
-                borderRadius: '0.5rem',
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '0.5rem',
-                },
-              }}
-            />
-
-            {/* Error message */}
-            {loginError && (
-              <Typography
-                variant="body2"
-                sx={{ color: '#FFC627', textAlign: 'center' }}
-              >
-                {loginError}
-              </Typography>
-            )}
-
             <LoadingButton
               type="submit"
               variant="contained"
               size="large"
               endIcon={<ArrowForwardIosIcon />}
-              loading={loading}
-              disabled={!username.trim()}
+              loading={auth.loading}
               loadingIndicator={
                 <CircularProgress
                   size={24}

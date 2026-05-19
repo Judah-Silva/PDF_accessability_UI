@@ -6,8 +6,8 @@ import {
   Navigate,
 } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
-import { AuthProvider, useAuthContext } from './context/AuthContext.jsx';
-import {isMaintenanceMode} from './utilities/constants.jsx';
+import { AuthProvider, useAuth } from 'react-oidc-context';
+import {COGNITO_AUTHORITY, COGNITO_CLIENT_ID, isMaintenanceMode, REDIRECT_URI} from './utilities/constants.jsx';
 
 import theme from './theme';
 
@@ -18,13 +18,28 @@ import CallbackPage from './pages/CallbackPage';
 import MaintenancePage from './pages/MaintenancePage';
 import PreviewApp from './preview/PreviewApp';
 
-function AppRoutes() {
-  const { isAuthenticated, isLoading } = useAuthContext();
-  // const auth = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+const cognitoAuthConfig = {
+  authority: COGNITO_AUTHORITY,
+  client_id: COGNITO_CLIENT_ID,
+  redirect_uri: REDIRECT_URI,
+  response_type: "code",
+  scope: "email openid profile",
+  onSigninCallback: () => {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  },
+};
 
-  if (isLoading) {
+
+function AppRoutes() {
+  const auth = useAuth();
+
+  if (auth.isLoading) {
     return <div>Loading authentication status...</div>;
+  }
+
+  if (auth.error) {
+    console.error('Authentication error:', auth.error);
+    return <div>Authentication Error: {auth.error.message}</div>;
   }
 
   return (
@@ -39,11 +54,8 @@ function AppRoutes() {
       <Route
         path="/app"
         element={
-          isAuthenticated ? (
-            <MainApp
-              isLoggingOut={isLoggingOut}
-              setIsLoggingOut={setIsLoggingOut}
-            />
+          auth.isAuthenticated ? (
+            <MainApp/>
           ) : (
             <Navigate to="/home" replace />
           )
@@ -62,7 +74,7 @@ function App() {
   }
 
   return (
-    <AuthProvider>
+    <AuthProvider {...cognitoAuthConfig}>
       <ThemeProvider theme={theme}>
           {/* <AppRoutes /> */}
           {isMaintenanceMode ? <MaintenancePage /> : <AppRoutes />}
