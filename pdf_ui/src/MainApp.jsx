@@ -18,7 +18,7 @@ import { COGNITO_CLIENT_ID, COGNITO_DOMAIN } from './utilities/constants';
 
 // import DeploymentPopup from './components/DeploymentPopup';
 
-function MainApp({ isLoggingOut, setIsLoggingOut }) {
+function MainApp() {
   const auth = useAuth();
   const navigate = useNavigate();
 
@@ -44,11 +44,11 @@ function MainApp({ isLoggingOut, setIsLoggingOut }) {
 
   // Monitor authentication status within MainApp
   useEffect(() => {
-    if (!auth.isAuthenticated && !isLoggingOut) {
+    if (!auth.isAuthenticated) {
       // If user is not authenticated, redirect to /home
       navigate('/home', { replace: true });
     }
-  }, [auth.isAuthenticated, isLoggingOut, navigate]);
+  }, [auth.isAuthenticated, navigate]);
 
   // Bucket validation is now only checked when users select format options
 

@@ -32,7 +32,6 @@ const cognitoAuthConfig = {
 
 function AppRoutes() {
   const auth = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (auth.isLoading) {
     return <div>Loading authentication status...</div>;
@@ -56,10 +55,7 @@ function AppRoutes() {
         path="/app"
         element={
           auth.isAuthenticated ? (
-            <MainApp
-              isLoggingOut={isLoggingOut}
-              setIsLoggingOut={setIsLoggingOut}
-            />
+            <MainApp/>
           ) : (
             <Navigate to="/home" replace />
           )
