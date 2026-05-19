@@ -1,6 +1,7 @@
 // src/MainApp.js
 import React, { useState, useEffect } from 'react';
-import { useAuthContext } from './context/AuthContext.jsx';
+// import { useAuthContext } from './context/AuthContext.jsx';
+import { useAuth } from 'react-oidc-context';
 import { useNavigate } from 'react-router-dom';
 import { Container, Box } from '@mui/material';
 import { ThemeProvider } from '@mui/material/styles';
@@ -13,11 +14,12 @@ import theme from './theme';
 // import FirstSignInDialog from './components/FirstSignInDialog';
 import HeroSection from './components/HeroSection';
 import InformationBlurb from './components/InformationBlurb';
+import { COGNITO_CLIENT_ID, COGNITO_DOMAIN } from './utilities/constants';
 
 // import DeploymentPopup from './components/DeploymentPopup';
 
-function MainApp() {
-  const { isAuthenticated, logout, isLoading } = useAuthContext();
+function MainApp({ isLoggingOut, setIsLoggingOut }) {
+  const auth = useAuth();
   const navigate = useNavigate();
 
   // AWS & file states
@@ -42,11 +44,11 @@ function MainApp() {
 
   // Monitor authentication status within MainApp
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!auth.isAuthenticated && !isLoggingOut) {
       // If user is not authenticated, redirect to /home
       navigate('/home', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [auth.isAuthenticated, isLoggingOut, navigate]);
 
   // Bucket validation is now only checked when users select format options
 
@@ -107,8 +109,17 @@ function MainApp() {
     setProcessingStartTime(null);
   };
 
+  const handleSignOut = () => {
+    const params = new URLSearchParams({
+      client_id: COGNITO_CLIENT_ID,
+      logout_uri: `${window.location.origin}/home`,
+    });
+    auth.removeUser();
+    window.location.href = `${COGNITO_DOMAIN}/logout?${params}`;
+  };
+
   // Handle authentication loading and errors
-  if (isLoading) {
+  if (auth.isLoading) {
     return <div>Loading...</div>;
   }
 
@@ -129,7 +140,7 @@ function MainApp() {
           minHeight: '100vh'
         }}>
           <Header
-            handleSignOut={logout}
+            handleSignOut={handleSignOut}
             onMenuClick={() => setMobileNavOpen(true)}
           />
 

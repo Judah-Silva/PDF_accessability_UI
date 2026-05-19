@@ -4,13 +4,13 @@ import { Snackbar, Alert } from '@mui/material';
 import { motion } from 'framer-motion';
 import { PDFDocument } from 'pdf-lib';
 import { useApiClient } from '../hooks/useApiClient';
-import { useAuthContext } from '../context/AuthContext';
 import imgFileQuestion from '../assets/pdf-question.svg';
 import imgFileText from '../assets/pdf-icon.svg';
 import imgCodeXml from '../assets/pdf-html.svg';
 import './UploadSection.css';
 
 import { PDFBucket, HTMLBucket, validateBucketConfiguration, validateFormatBucket } from '../utilities/constants';
+import { useAuth } from 'react-oidc-context';
 
 function sanitizeFilename(filename, format = 'pdf') {
   // Normalize the filename to decompose accented characters
@@ -48,7 +48,8 @@ function sanitizeFilename(filename, format = 'pdf') {
 
 
 function UploadSection({ onUploadComplete }) {
-  const { username } = useAuthContext();
+  const auth = useAuth();
+  const username = auth.user?.profile?.email;
   const { apiFetch } = useApiClient();
   const fileInputRef = useRef(null);
   const dragCounter = useRef(0);

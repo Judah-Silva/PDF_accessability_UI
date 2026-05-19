@@ -1,16 +1,15 @@
 import { useCallback } from 'react';
-import { useAuthContext } from '../context/AuthContext';
-import { isTokenExpired } from '../utilities/tokenUtils';
-import { SESSION_TOKEN_KEY } from '../utilities/constants';
+import { useAuth } from 'react-oidc-context';
 
 export function useApiClient() {
-  const { handleUnauthorized } = useAuthContext();
+  const auth = useAuth();
 
   const apiFetch = useCallback(async (path, options = {}) => {
-    const token = localStorage.getItem(SESSION_TOKEN_KEY) ?? '';
+    const token = auth.user?.access_token;
     
-    if (!token || isTokenExpired(token)) {
-      handleUnauthorized();
+    if (!token) {
+      auth.removeUser();
+      window.location.href = '/home';
       return;
     }
 
@@ -29,7 +28,8 @@ export function useApiClient() {
     }
 
     if (res.status === 401) {
-      handleUnauthorized();
+      auth.removeUser();
+      window.location.href = '/home';
       return;
     }
 
@@ -41,7 +41,7 @@ export function useApiClient() {
     }
 
     return body;
-  }, [handleUnauthorized]);
+  }, [auth]);
 
   /**
    * Requests a presigned URL to download the specified file from S3

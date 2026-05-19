@@ -24,10 +24,6 @@ export const primary_50 = '#F8E6EF';
 
 export const isMaintenanceMode = import.meta.env.REACT_APP_MAINTENANCE_MODE === 'true';
 
-export const SESSION_KEY = 'app_authenticated';
-export const SESSION_TOKEN_KEY = 'app_token';
-export const SESSION_USERNAME_KEY = 'app_username';
-
 // export const Authority = import.meta.env.REACT_APP_AUTHORITY;
 // export const region = import.meta.env.REACT_APP_AWS_REGION;
 // export const Bucket = import.meta.env.REACT_APP_BUCKET_NAME;
@@ -81,9 +77,11 @@ export const validateFormatBucket = (format) => {
   };
 };
 
-export const COGNITO_DOMAIN=$REACT_APP_COGNITO_DOMAIN
-export const COGNITO_CLIENT_ID=$REACT_APP_COGNITO_CLIENT_ID
-export const REDIRECT_URI=$REACT_APP_REDIRECT_URI
+export const COGNITO_AUTHORITY=import.meta.env.REACT_APP_COGNITO_AUTHORITY;
+export const COGNITO_DOMAIN=import.meta.env.REACT_APP_COGNITO_DOMAIN;
+export const COGNITO_CLIENT_ID=import.meta.env.REACT_APP_COGNITO_CLIENT_ID;
+export const COGNITO_IDP_NAME=import.meta.env.REACT_APP_COGNITO_IDP_NAME;
+export const REDIRECT_URI=import.meta.env.REACT_APP_REDIRECT_URI;
 
 // Preferably not use
 // export const HostedUserPoolDomain = process.env.REACT_APP_USER_POOL_DOMAIN;
