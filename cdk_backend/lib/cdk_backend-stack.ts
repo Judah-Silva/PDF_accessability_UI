@@ -16,6 +16,7 @@ export class CdkBackendStack extends cdk.Stack {
     const PDF_TO_HTML_BUCKET = this.node.tryGetContext('PDF_TO_HTML_BUCKET');
     const COGNITO_CLIENT_ID = this.node.tryGetContext('COGNITO_CLIENT_ID');
     const COGNITO_USER_POOL_ID = this.node.tryGetContext('COGNITO_USER_POOL_ID');
+    const COGNITO_IDP_NAME = this.node.tryGetContext('COGNITO_IDP_NAME');
 
     // Validate that at least one bucket is provided
     if (!PDF_TO_PDF_BUCKET && !PDF_TO_HTML_BUCKET) {
@@ -327,8 +328,10 @@ export class CdkBackendStack extends cdk.Stack {
 
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', customUrl);
     mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
+    mainBranch.addEnvironment('REACT_APP_COGNITO_AUTHORITY', `https://cognito-idp.${this.region}.amazonaws.com/${COGNITO_USER_POOL_ID}`);
     mainBranch.addEnvironment('REACT_APP_COGNITO_DOMAIN', cognitoDomain);
     mainBranch.addEnvironment('REACT_APP_COGNITO_CLIENT_ID', COGNITO_CLIENT_ID);
+    mainBranch.addEnvironment('REACT_APP_COGNITO_IDP_NAME', COGNITO_IDP_NAME);
     mainBranch.addEnvironment('REACT_APP_REDIRECT_URI', cognitoCallback);
 
     // --------------------------- Outputs ------------------------------

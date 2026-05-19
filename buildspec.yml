@@ -35,6 +35,9 @@ phases:
         if [ -n "${COGNITO_USER_POOL_ID:-}" ] && [ "${COGNITO_USER_POOL_ID}" != 'Null' ]; then
           CDK_CONTEXT="$CDK_CONTEXT -c COGNITO_USER_POOL_ID=$COGNITO_USER_POOL_ID"
         fi
+        if [ -n "${COGNITO_IDP_NAME:-}" ] && [ "${COGNITO_IDP_NAME}" != 'Null' ]; then
+          CDK_CONTEXT="$CDK_CONTEXT -c COGNITO_IDP_NAME=$COGNITO_IDP_NAME"
+        fi
         cdk deploy --all --require-approval never $CDK_CONTEXT
 
 
