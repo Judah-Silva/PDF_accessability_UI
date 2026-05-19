@@ -326,9 +326,10 @@ export class CdkBackendStack extends cdk.Stack {
       mainBranch.addEnvironment('REACT_APP_HTML_BUCKET_NAME', PDF_TO_HTML_BUCKET);
     }
 
+    const cognitoAuthority = `https://cognito-idp.${this.region}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', customUrl);
     mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
-    mainBranch.addEnvironment('REACT_APP_COGNITO_AUTHORITY', `https://cognito-idp.${this.region}.amazonaws.com/${COGNITO_USER_POOL_ID}`);
+    mainBranch.addEnvironment('REACT_APP_COGNITO_AUTHORITY', cognitoAuthority);
     mainBranch.addEnvironment('REACT_APP_COGNITO_DOMAIN', cognitoDomain);
     mainBranch.addEnvironment('REACT_APP_COGNITO_CLIENT_ID', COGNITO_CLIENT_ID);
     mainBranch.addEnvironment('REACT_APP_COGNITO_IDP_NAME', COGNITO_IDP_NAME);
@@ -350,5 +351,14 @@ export class CdkBackendStack extends cdk.Stack {
       description: 'Lambda API base URL'
     })
 
+    new cdk.CfnOutput(this, 'Cognito Authority', {
+      value: cognitoAuthority,
+      description: 'Lambda API base URL'
+    })
+
+    new cdk.CfnOutput(this, 'Cognito Domain', {
+      value: cognitoDomain,
+      description: 'Lambda API base URL'
+    })
   }
 }
