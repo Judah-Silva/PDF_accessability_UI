@@ -4,7 +4,6 @@ import { jwtVerify, importSPKI } from 'jose';
 const s3 = new S3Client({});
 
 const ALLOWED_ORIGIN = process.env.FRONTEND_ORIGIN;
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
   'Access-Control-Allow-Credentials': 'true', // required for cookies
@@ -17,25 +16,10 @@ export const handler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
-  // verify auth cookie — same pattern as other lambdas
-  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
-  const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
-
-  if (!accessToken) {
-    console.log('No access token found. Rejecting access.')
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthenticated' }) };
-  }
+  const key    = event.queryStringParameters?.key;
+  const bucket = event.queryStringParameters?.bucket;
 
   try {
-    const publicKey = await importSPKI(process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n'), 'RS256');
-    const { payload } = await jwtVerify(access_token, publicKey, {
-      issuer: process.env.JWT_ISSUER,
-      audience: process.env.JWT_AUDIENCE,
-    });
-
-    const key    = event.queryStringParameters?.key;
-    const bucket = event.queryStringParameters?.bucket;
-
     // SECURITY: same ownership check as download
     // FINISH LATER
     // if (!key.startsWith(`uploads/${payload.sub}/`)) {
