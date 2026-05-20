@@ -1,5 +1,4 @@
 import { S3Client, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { jwtVerify, importSPKI } from 'jose';
 
 const s3 = new S3Client({});
 
