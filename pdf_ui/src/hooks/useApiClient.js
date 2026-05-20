@@ -5,7 +5,7 @@ export function useApiClient() {
   const auth = useAuth();
 
   const apiFetch = useCallback(async (path, options = {}) => {
-    const token = auth.user?.access_token;
+    const token = auth.user?.id_token;
     
     if (!token) {
       auth.removeUser();
