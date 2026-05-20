@@ -1,13 +1,8 @@
-import * as path from 'path';
-import * as crypto from 'crypto';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { jwtVerify, importSPKI } from 'jose';
 
 const s3 = new S3Client({});
-
 const ALLOWED_MIME_TYPES = ['application/pdf'];
-
 const ALLOWED_ORIGIN = process.env.FRONTEND_ORIGIN;
 
 const corsHeaders = {
@@ -22,26 +17,9 @@ export const handler = async (event) => {
     return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
-  const authHeader = event.headers?.authorization || event.headers?.Authorization || '';
-  const accessToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const claims = event.requestContext?.authorizer?.claims;
+  const userSub = claims?.sub;
 
-  if (!accessToken) {
-    console.log('No access token found. Rejecting access.')
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthenticated' }) };
-  }
-
-  let payload;
-  try {
-    const publicKey = await importSPKI(process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n'), 'RS256');
-    ({ payload } = await jwtVerify(accessToken, publicKey, {
-      issuer: process.env.JWT_ISSUER,
-      audience: process.env.JWT_AUDIENCE,
-    }));
-  } catch (err) {
-    console.log('Invalid token in request.')
-    return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid token' }) };
-  }
-  
   const { fileName, fileType, fileSize, remediationType } = JSON.parse(event.body || '{}');
   
   // SECURITY: validate file type — never trust the client's claimed MIME type alone
@@ -50,14 +28,9 @@ export const handler = async (event) => {
     return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Only PDF files are allowed' }) };
   }
   
-  // SECURITY: sanitize the filename — strip path traversal and special characters
-  // const safeFileName = path.basename(fileName).replace(/[^a-zA-Z0-9._-]/g, '_');
-  // const safeFileName = `${safeName}-${crypto.randomUUID()}`;
-  
   // SECURITY: scope uploads to the authenticated user's own folder
   // and add a random ID to prevent filename collisions/overwrites
   const uploadKey = remediationType === 'pdf2pdf' ? `pdf/${fileName}` : `uploads/${fileName}`;
-  
   const bucket = remediationType === 'pdf2pdf' ? process.env.PDF_TO_PDF_BUCKET : process.env.PDF_TO_HTML_BUCKET;
   if (!bucket) {
     console.log('Upload bucket not found.')
@@ -70,7 +43,7 @@ export const handler = async (event) => {
     ContentType: 'application/pdf',
     ContentLength: fileSize,
     // SECURITY: tag the object with the uploader's identity for auditing
-    Tagging: `uploadedBy=${payload.sub}`,
+    Tagging: `uploadedBy=${userSub}`,
     // SECURITY: server-side encryption at rest
     ServerSideEncryption: 'AES256',
   });
@@ -87,9 +60,3 @@ export const handler = async (event) => {
     }),
   };
 };
-
-function parseCookies(header) {
-  return Object.fromEntries(
-    header.split(';').map(c => c.trim().split('=').map(decodeURIComponent))
-  );
-}

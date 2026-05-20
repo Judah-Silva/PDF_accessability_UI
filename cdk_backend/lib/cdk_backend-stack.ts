@@ -181,6 +181,7 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        FRONTEND_ORIGIN: customUrl,
       }
     })
 
@@ -205,6 +206,7 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        FRONTEND_ORIGIN: customUrl,
       }
     })
 
@@ -229,6 +231,7 @@ export class CdkBackendStack extends cdk.Stack {
       environment: {
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
+        FRONTEND_ORIGIN: customUrl,
       }
     })
 
