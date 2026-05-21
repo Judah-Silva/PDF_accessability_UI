@@ -7,7 +7,7 @@ export class ApiError extends Error {
 }
 
 export function defaultMessageForStatus(status) {
-  if (status === 403) return 'You do not have permission to perform this action.';
+  if (status === 403) return 'You do not have permission to perform this action. You may have to sign out and sign in again.';
   if (status === 404) return 'The requested resource was not found.';
   if (status === 413) return 'The file is too large to upload.';
   if (status === 429) return 'Too many requests. Please wait a moment and try again.';
