@@ -10,7 +10,7 @@ export function useApiClient() {
 
   const apiFetch = useCallback(async (path, options = {}) => {
     const token = localStorage.getItem(SESSION_TOKEN_KEY) ?? '';
-    
+
     if (!token || isTokenExpired(token)) {
       handleUnauthorized();
       return;
@@ -29,12 +29,12 @@ export function useApiClient() {
     } catch (err) {
       throw new ApiError('Unable to reach the server. Check your connection and try again.', 'NETWORK_ERROR', null);
     }
-    
+
     if (res.status === 401) {
       handleUnauthorized();
       return;
     }
-    
+
     const body = await res.json().catch(() => (null));
     
     if (!res.ok) {
@@ -45,7 +45,7 @@ export function useApiClient() {
         res.status,
       );
     }
-    
+
     return body;
   }, [handleUnauthorized]);
 
@@ -62,14 +62,14 @@ export function useApiClient() {
        method: 'POST',
        body: JSON.stringify({ key, bucket }),
       });
-      
+
       if (!res || res.notFound) {
         return;
       }
     } catch (err) {
       throw new ApiError('Unable to reach the server. Check your connection and try again.', 'NETWORK_ERROR', null);
     }
-    
+
     const downloadUrl = res.downloadUrl;
     if (getUrl) return downloadUrl;
 
@@ -84,7 +84,7 @@ export function useApiClient() {
       a.href = url;
       a.download = key.split('/').pop() ?? 'download';
       a.click();
-  
+
       // clean up the object URL after the download starts
       URL.revokeObjectURL(url);
     } catch {
