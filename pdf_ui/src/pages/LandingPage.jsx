@@ -27,6 +27,7 @@ import { PRIMARY_MAIN } from '../utilities/constants';
 
 // Styled Components
 import { styled } from '@mui/system';
+import './styles.css'
 
 const StyledLink = styled(Link)(({ theme }) => ({
   color: '#8C1D40',
@@ -68,12 +69,13 @@ const LandingPage = () => {
   // check for error param from Duo callback redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('error') === 'auth_failed') {
+    if (params.get('error') === 'auth_failed' || auth.error) {
+      console.error('Authentication failed: ', auth.error);
       setErrorMessage('Authentication failed. Please try again.');
       // clean the param off the URL so it doesn't persist on refresh
       window.history.replaceState({}, document.title, window.location.pathname);
     }
-  }, []);
+  }, [auth.error]);
 
   useEffect(() => {
     if (isLoading) return;
