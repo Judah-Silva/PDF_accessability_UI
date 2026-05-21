@@ -7,7 +7,7 @@ export function useApiClient() {
 
   const apiFetch = useCallback(async (path, options = {}) => {
     const token = auth.user?.id_token;
-    
+
     if (!token) {
       auth.removeUser();
       window.location.href = '/home';
@@ -27,13 +27,13 @@ export function useApiClient() {
     } catch (err) {
       throw new ApiError('Unable to reach the server. Check your connection and try again.', 'NETWORK_ERROR', null);
     }
-    
+
     if (res.status === 401) {
       auth.removeUser();
       window.location.href = '/home';
       return;
     }
-    
+
     const body = await res.json().catch(() => (null));
     
     if (!res.ok) {
@@ -44,10 +44,10 @@ export function useApiClient() {
         res.status,
       );
     }
-    
+
     return body;
   }, [auth]);
-  
+
   /**
    * Requests a presigned URL to download the specified file from S3
    * @param {string} key The key of the file to fetch
@@ -61,14 +61,14 @@ export function useApiClient() {
        method: 'POST',
        body: JSON.stringify({ key, bucket }),
       });
-      
+
       if (!res || res.notFound) {
         return;
       }
     } catch (err) {
       throw new ApiError('Unable to reach the server. Check your connection and try again.', 'NETWORK_ERROR', null);
     }
-    
+
     const downloadUrl = res.downloadUrl;
     if (getUrl) return downloadUrl;
 
@@ -83,7 +83,7 @@ export function useApiClient() {
       a.href = url;
       a.download = key.split('/').pop() ?? 'download';
       a.click();
-  
+
       // clean up the object URL after the download starts
       URL.revokeObjectURL(url);
     } catch {
