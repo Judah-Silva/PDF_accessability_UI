@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ResultsContainer from './ResultsContainer';
 import './ProcessingContainer.css';
 import { PDFBucket, HTMLBucket } from '../utilities/constants';
 import { useApiClient } from '../hooks/useApiClient';
+import { ApiError } from '../utilities/apiError';
 
 const PROCESSING_STEPS = [
   { title: "Analyzing Document Structure", description: "Scanning PDF for accessibility issues" },
@@ -29,9 +30,11 @@ const ProcessingContainer = ({
 }) => {
   const [processedFiles, setProcessedFiles] = useState(null);
   const [isDoneProcessing, setIsDoneProcessing] = useState(false);
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pollingAttempts, setPollingAttempts] = useState(0);
+  const intervalsRef = useRef({ poll: null, time: null, step: null });
 
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -88,54 +91,54 @@ const ProcessingContainer = ({
   }, [selectedFormat]);
 
   useEffect(() => {
-    let intervalId;
-    let timeIntervalId;
-    let stepIntervalId;
+    intervalsRef.current = { poll: null, time: null, step: null };
+    
+    const stopPolling = () => {
+      clearInterval(intervalsRef.current.poll);
+      clearInterval(intervalsRef.current.time);
+      clearInterval(intervalsRef.current.step);
+    }
 
     const checkFileAvailability = async () => {
       // Maximum polling time: 30 minutes (120 attempts * 15 seconds = 30 minutes)
       const MAX_POLLING_ATTEMPTS = 120;
 
-      try {
-        // Increment polling attempts
-        setPollingAttempts(prev => {
-          const newAttempts = prev + 1;
+      // Increment polling attempts
+      setPollingAttempts(prev => {
+        const newAttempts = prev + 1;
 
-          // Stop polling after maximum attempts
-          if (newAttempts >= MAX_POLLING_ATTEMPTS) {
-            console.warn('⚠️ Maximum polling attempts reached. Stopping file check.');
-            clearInterval(intervalId);
-            clearInterval(timeIntervalId);
-            clearInterval(stepIntervalId);
-            return newAttempts;
-          }
-
+        // Stop polling after maximum attempts
+        if (newAttempts >= MAX_POLLING_ATTEMPTS) {
+          console.warn('⚠️ Maximum polling attempts reached. Stopping file check.');
+          setErrorMessage('Processing is taking longer than expected. Please try again.')
+          stopPolling();
           return newAttempts;
-        });
-
-        // Select the correct bucket based on format (same logic as UploadSection)
-        const selectedBucket = selectedFormat === 'html' ? HTMLBucket : PDFBucket;
-
-        // Check if Bucket is available
-        if (!selectedBucket) {
-          console.error('❌ Bucket is not defined! Check environment variables.');
-          clearInterval(intervalId);
-          clearInterval(timeIntervalId);
-          clearInterval(stepIntervalId);
-          return;
         }
+        return newAttempts;
+      });
 
+      // Select the correct bucket based on format (same logic as UploadSection)
+      const selectedBucket = selectedFormat === 'html' ? HTMLBucket : PDFBucket;
+
+      // Check if Bucket is available
+      if (!selectedBucket) {
+        console.error('Bucket configuration error.')
+        setErrorMessage('Something went wrong, please try again. Contact support if this error persists.')
+        stopPolling();
+        return;
+      }
+
+      try {
         const results = await Promise.all(
           pendingFiles.map(async ({ originalName, updatedName }) => {
             const objectKey = getObjectKey(updatedName);
-            // console.log(`🔍 Polling attempt ${pollingAttempts + 1}/${MAX_POLLING_ATTEMPTS} for object key:`, objectKey);
             const params = new URLSearchParams({ key: objectKey, bucket: selectedBucket });
             const data = await apiFetch(`/file-status?${params.toString()}`, {
               method: 'GET',
             });
             return { updatedName, originalName, objectKey, ready: data.ready };
           })
-        )
+        );
 
         const readyFiles = results.filter(r => r.ready);
         const stillPending = results.filter(r => !r.ready).map(({ updatedName, originalName }) => ({ originalName, updatedName }));
@@ -154,27 +157,23 @@ const ProcessingContainer = ({
           setIsDoneProcessing(true);
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
-          onAllFilesReady([...processedFiles, ...(newEntries ?? [])]);
-
+          onAllFilesReady([...( processedFiles ?? []), ...( newEntries ?? [] )]);
+          
           // Clear all intervals on success
-          clearInterval(intervalId);
-          clearInterval(timeIntervalId);
-          clearInterval(stepIntervalId);
+          stopPolling();
 
           console.log('✅ File processing completed successfully!');
         } else {
           console.log(`⏳ File not ready yet (attempt ${pollingAttempts + 1}). Retrying in 15 seconds...`);
-          if (pollingAttempts + 1 >= MAX_POLLING_ATTEMPTS) {
-            console.error('❌ File processing timed out after maximum attempts');
-          }
         }
       } catch (error) {
-        // TODO: Show message to user that something went wrong
+        stopPolling();
         console.error('Error during file polling.');
-        setErrorMessage('Something went wrong while processing your files. Please try again.');
-        clearInterval(intervalId);
-        clearInterval(timeIntervalId);
-        clearInterval(stepIntervalId);
+        if (error instanceof ApiError) {
+          setErrorMessage(error.status == 403 ? 'Your download request timed out. Please re-upload your files and try again.' : error.message);
+        } else {
+          setErrorMessage('Something went wrong while processing your files. Please try again.');
+        }
       }
     };
 
@@ -183,24 +182,20 @@ const ProcessingContainer = ({
       setPollingAttempts(0);
 
       // Start time tracking
-      timeIntervalId = setInterval(() => {
+      intervalsRef.current.time = setInterval(() => {
         setElapsedTime(prev => prev + 1);
       }, 1000);
 
       // Microanimation: cycling through steps with cumulative highlighting
-      stepIntervalId = setInterval(() => {
+      intervalsRef.current.step = setInterval(() => {
         setCurrentStep(prev => (prev + 1) % PROCESSING_STEPS.length);
       }, 1200);
 
       // File checking with maximum retry limit
-      intervalId = setInterval(checkFileAvailability, 15000);
+      intervalsRef.current.poll = setInterval(checkFileAvailability, 15000);
     }
 
-    return () => {
-      clearInterval(intervalId);
-      clearInterval(timeIntervalId);
-      clearInterval(stepIntervalId);
-    };
+    return () => stopPolling();
   }, [pendingFiles, setPendingFiles, isDoneProcessing, onAllFilesReady, apiFetch, downloadFile, selectedFormat, getObjectKey, processedFiles, pollingAttempts]);
 
   return (
