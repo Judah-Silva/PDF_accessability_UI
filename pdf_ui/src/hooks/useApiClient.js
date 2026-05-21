@@ -36,7 +36,7 @@ export function useApiClient() {
     }
 
     const body = await res.json().catch(() => (null));
-    
+
     if (!res.ok) {
       console.error(`Request failed with status ${res.status}`);
       throw new ApiError(
@@ -87,7 +87,7 @@ export function useApiClient() {
 
       // clean up the object URL after the download starts
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
       throw new ApiError('File download failed. Please try again.', 'DOWNLOAD_ERROR', null);
     }
   }, [apiFetch]);

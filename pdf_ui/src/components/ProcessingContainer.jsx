@@ -168,7 +168,7 @@ const ProcessingContainer = ({
         }
       } catch (error) {
         stopPolling();
-        console.error('Error during file polling.');
+        console.error('Error during file polling:', error);
         if (error instanceof ApiError) {
           setErrorMessage(error.message);
         } else {
