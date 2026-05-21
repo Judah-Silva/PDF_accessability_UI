@@ -66,12 +66,12 @@ export function useApiClient() {
       if (!res || res.notFound) {
         return;
       }
+
+      const downloadUrl = res.downloadUrl;
+      if (getUrl) return downloadUrl;
     } catch (err) {
       throw new ApiError('Unable to reach the server. Check your connection and try again.', 'NETWORK_ERROR', null);
     }
-
-    const downloadUrl = res.downloadUrl;
-    if (getUrl) return downloadUrl;
 
     // Step 2: fetch the file from S3 and trigger a browser download.
     // Can't just set window.location.href because that would expose
