@@ -158,7 +158,7 @@ const ProcessingContainer = ({
           setCurrentStep(PROCESSING_STEPS.length - 1); // Set to final step
           // onFileReady(url, objectKey.split('/').pop());
           onAllFilesReady([...( processedFiles ?? []), ...( newEntries ?? [] )]);
-          
+
           // Clear all intervals on success
           stopPolling();
 
@@ -170,7 +170,7 @@ const ProcessingContainer = ({
         stopPolling();
         console.error('Error during file polling.');
         if (error instanceof ApiError) {
-          setErrorMessage(error.status == 403 ? 'Your download request timed out. Please re-upload your files and try again.' : error.message);
+          setErrorMessage(error.message);
         } else {
           setErrorMessage('Something went wrong while processing your files. Please try again.');
         }

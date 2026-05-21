@@ -4,6 +4,7 @@ import './ResultsContainer.css';
 import img1 from "../assets/zap.svg";
 import img2 from "../assets/pdf-icon.svg";
 import AccessibilityChecker from './AccessibilityChecker';
+import { ApiError, defaultMessageForStatus, errorCodeForStatus } from '../utilities/apiError';
 
 /**
  *
@@ -30,6 +31,7 @@ const ResultsContainer = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const [showReportDialog, setShowReportDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   // Function to format processing time
   const formatProcessingTime = (seconds) => {
@@ -61,6 +63,11 @@ const ResultsContainer = ({
         const downloadName = objectKey.endsWith('.zip') ? objectKey : originalName;
 
         const res = await fetch(downloadUrl);
+
+        if (!res.ok) {
+          throw new ApiError(defaultMessageForStatus(res.status), errorCodeForStatus(res.status), res.status);
+        }
+
         const blob = await res.blob();
 
         const url = URL.createObjectURL(blob);
@@ -77,14 +84,28 @@ const ResultsContainer = ({
       // Bulk upload to zip files
       const zip = new JSZip();
 
+      const failedFiles = [];
       await Promise.all(
         processedFiles.map(async ({ originalName, objectKey, downloadUrl }) => {
-          const downloadName = objectKey.endsWith('.zip') ? objectKey : originalName;
-          const res = await fetch(downloadUrl);
-          const blob = await res.blob();
-          zip.file(downloadName, blob);
+          try {
+            const downloadName = objectKey.endsWith('.zip') ? objectKey : originalName;
+            const res = await fetch(downloadUrl);
+            if (!res.ok) throw new ApiError(`HTTP ${res.status}`, errorCodeForStatus(res.status), res.status);
+            const blob = await res.blob();
+            zip.file(downloadName, blob);
+          } catch (error) {
+            console.error(`Failed to download ${originalName}:`, error);
+            failedFiles.push(originalName);
+          }
         })
       )
+
+      // Some files failed, but some succeeded
+      if (failedFiles.length > 0 && failedFiles.length < processedFiles.length) {
+        setErrorMessage(`Some files could not be downloaded: ${failedFiles.join(', ')}\nPlease re-upload those files and try again.`);
+      } else if (failedFiles.length === processedFiles.length) {
+        throw new ApiError('All file downloads failed. Please try again.', 'DOWNLOAD_ERROR', null);
+      }
 
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
@@ -97,19 +118,25 @@ const ResultsContainer = ({
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Download failed:', error);
+      if (error instanceof ApiError) {
+        setErrorMessage(
+          error.status === 403
+          ? 'Access denied for file download.\nYour download request may have timed out, please re-upload your files and try again.'
+          : error.message
+        );
+      } else {
+        // Provide more specific error messages
+        let message = 'Download failed. Please try again.';
+        if (error.message.includes('File not found')) {
+          message = 'File not ready yet. Please wait for processing to complete.';
+        } else if (error.message.includes('Access denied')) {
+          message = 'Access denied. Please check permissions or contact support.';
+        } else if (error.message.includes('credentials')) {
+          message = 'Authentication error. Please refresh the page and try again.';
+        }
 
-      // Provide more specific error messages
-      let errorMessage = 'Download failed. Please try again.';
-
-      if (error.message.includes('File not found')) {
-        errorMessage = 'File not ready yet. Please wait for processing to complete.';
-      } else if (error.message.includes('Access denied')) {
-        errorMessage = 'Access denied. Please check permissions or contact support.';
-      } else if (error.message.includes('credentials')) {
-        errorMessage = 'Authentication error. Please refresh the page and try again.';
+        setErrorMessage(message);
       }
-
-      alert(errorMessage);
     } finally {
       setIsDownloading(false);
     }
@@ -186,6 +213,12 @@ const ResultsContainer = ({
           </button>
         </div>
       </div>
+
+      {errorMessage && (
+        <div className='download-error'>
+          <p>{errorMessage}</p>
+        </div>
+      )}
 
       {/* Custom Confirmation Dialog */}
       {showConfirmDialog && (
