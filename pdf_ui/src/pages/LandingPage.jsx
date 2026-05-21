@@ -63,12 +63,13 @@ const LandingPage = () => {
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // check for error param from Duo callback redirect
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('error') === 'auth_failed') {
-      setLoginError('Authentication failed. Please try again.');
+      setErrorMessage('Authentication failed. Please try again.');
       // clean the param off the URL so it doesn't persist on refresh
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -310,6 +311,12 @@ const LandingPage = () => {
               Log In and Remediate My PDF
             </LoadingButton>
           </GradientBox>
+
+          {errorMessage && (
+            <div className='auth-error'>
+              <p>{errorMessage}</p>
+            </div>
+          )}
 
           <Box sx={{ mt: 2 }}>
             <StyledLink

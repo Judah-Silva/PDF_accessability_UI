@@ -178,6 +178,12 @@ const ResultsContainer = ({
             </div>
           </div>
 
+          {errorMessage && (
+            <div className='download-error'>
+              <p>{errorMessage}</p>
+            </div>
+          )}
+
           <div className="button-group">
             {(format === 'pdf' && originalFileName) && (
               <button className="view-report-btn" onClick={() => setShowReportDialog(true)}>
@@ -213,12 +219,6 @@ const ResultsContainer = ({
           </button>
         </div>
       </div>
-
-      {errorMessage && (
-        <div className='download-error'>
-          <p>{errorMessage}</p>
-        </div>
-      )}
 
       {/* Custom Confirmation Dialog */}
       {showConfirmDialog && (

@@ -17,6 +17,7 @@ import MainApp from './MainApp';
 import CallbackPage from './pages/CallbackPage'; 
 import MaintenancePage from './pages/MaintenancePage';
 import PreviewApp from './preview/PreviewApp';
+import { Box, CircularProgress } from '@mui/material';
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuthContext();
@@ -24,8 +25,24 @@ function AppRoutes() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   if (isLoading) {
-    return <div>Loading authentication status...</div>;
+    return (
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <CircularProgress size={50} thickness={5} />
+      </Box>
+    );
   }
+
+  // if (auth.error) {
+  //   console.error('Authentication error:', auth.error);
+  //   return <div>Authentication Error: {auth.error.message}</div>;
+  // }
 
   return (
     <Routes>
