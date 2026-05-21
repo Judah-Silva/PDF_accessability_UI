@@ -185,13 +185,13 @@ function UploadSection({ onUploadComplete }) {
     // **3. Attempt to Increment Usage First**
     setIsUploading(true);
 
+    const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, ''); // YYYYMMDDTHHMMSS format
+    const userEmail = username || 'unkown-user'; // Use email for unique filename, fallback to 'user'
+    const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumerics with underscores
+    const sanitizedFileName = sanitizeFilename(file.name, selectedFormat) || 'default.pdf'; // Fallback to 'default.pdf' if sanitization fails
+    const uniqueFilename = `${sanitizedEmail}_${timestamp}_${sanitizedFileName}`; // Combined unique filename
+    
     try {
-      const timestamp = new Date().toISOString().replace(/[-:.TZ]/g, ''); // YYYYMMDDTHHMMSS format
-      const userEmail = username || 'unkown-user'; // Use email for unique filename, fallback to 'user'
-      const sanitizedEmail = userEmail.replace(/[^a-zA-Z0-9]/g, '_'); // Replace non-alphanumerics with underscores
-      const sanitizedFileName = sanitizeFilename(file.name, selectedFormat) || 'default.pdf'; // Fallback to 'default.pdf' if sanitization fails
-      const uniqueFilename = `${sanitizedEmail}_${timestamp}_${sanitizedFileName}`; // Combined unique filename
-
       const { uploadUrl } = await apiFetch('/upload', {
         method: 'POST',
         body: JSON.stringify({
