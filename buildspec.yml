@@ -11,6 +11,16 @@ phases:
       - cd cdk_backend
       - echo "Installing npm dependencies"
       - npm ci
+      - cd lambda/authCallback
+      - npm ci
+      - cd ../fileStatus
+      - npm ci
+      - cd ../userAuth
+      - npm ci
+      - cd ../userDownload
+      - npm ci
+      - cd ../userUpload
+      - npm ci
 
   pre_build:
     commands:
