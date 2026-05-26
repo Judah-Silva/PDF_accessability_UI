@@ -21,6 +21,7 @@ phases:
       - npm ci
       - cd ../userUpload
       - npm ci
+      - cd ../..
 
   pre_build:
     commands:
