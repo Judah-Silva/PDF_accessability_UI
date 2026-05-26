@@ -78,9 +78,7 @@ export class CdkBackendStack extends cdk.Stack {
     }));
 
     const domainPrefix = `pdf-ui-auth-${this.account}-${this.region}`; // must be globally unique in that region
-    // const Default_Group = 'DefaultUsers';
-    // const Amazon_Group = 'AmazonUsers';
-    // const Admin_Group = 'AdminUsers';
+    const customUrl = 'https://pdf.hartnell.edu';
     const appUrl = `https://main.${amplifyApp.appId}.amplifyapp.com`;
 
     // --------- Set CORS on imported S3 buckets via custom resource ----------
@@ -89,7 +87,7 @@ export class CdkBackendStack extends cdk.Stack {
         {
           AllowedHeaders: ['*'],
           AllowedMethods: ['GET', 'PUT', 'POST', 'HEAD'],
-          AllowedOrigins: [appUrl, 'http://localhost:3000'],
+          AllowedOrigins: [appUrl, customUrl],
           ExposeHeaders: ['ETag'],
           MaxAgeSeconds: 3600,
         },
@@ -178,7 +176,7 @@ export class CdkBackendStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: userAuthLambdaRole,
       environment: {
-        FRONTEND_ORIGIN: appUrl,
+        FRONTEND_ORIGIN: customUrl,
         DYNAMO_STATE_TABLE: dynamoStateTable,
         DUO_CLIENT_ID: "",
         DUO_CLIENT_SECRET: "",
@@ -207,8 +205,8 @@ export class CdkBackendStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: authCallbackLambdaRole,
       environment: {
+        FRONTEND_ORIGIN: customUrl,
         DYNAMO_STATE_TABLE: dynamoStateTable,
-        FRONTEND_ORIGIN: appUrl,
         JWT_PRIVATE_KEY: "",
         JWT_ISSUER: "",
         JWT_AUDIENCE: "",
@@ -238,6 +236,7 @@ export class CdkBackendStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: userUploadLambdaRole,
       environment: {
+        FRONTEND_ORIGIN: customUrl,
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
         JWT_PUBLIC_KEY: "",
@@ -245,7 +244,7 @@ export class CdkBackendStack extends cdk.Stack {
         JWT_AUDIENCE: "",
       }
     })
-
+    
     console.log(`Created UserUploadLambda: ${userUploadLambda.functionName}`);
     
     const userDownloadLambdaRole = new iam.Role(this, 'UserDownloadLambdaRole', {
@@ -265,6 +264,7 @@ export class CdkBackendStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: userDownloadLambdaRole,
       environment: {
+        FRONTEND_ORIGIN: customUrl,
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
         JWT_PUBLIC_KEY: "",
@@ -272,7 +272,7 @@ export class CdkBackendStack extends cdk.Stack {
         JWT_AUDIENCE: "",
       }
     })
-
+    
     console.log(`Created UserDownloadLambda: ${userDownloadLambda.functionName}`);
     
     const fileStatusLambdaRole = new iam.Role(this, 'FileStatusLambdaRole', {
@@ -292,6 +292,7 @@ export class CdkBackendStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       role: fileStatusLambdaRole,
       environment: {
+        FRONTEND_ORIGIN: customUrl,
         PDF_TO_PDF_BUCKET: pdfBucket?.bucketName || "",
         PDF_TO_HTML_BUCKET: htmlBucket?.bucketName || "",
         JWT_PUBLIC_KEY: "",
@@ -329,13 +330,13 @@ export class CdkBackendStack extends cdk.Stack {
       pdfBucket.grantPut(userUploadLambda);
       pdfBucket.grantRead(userDownloadLambda);
       pdfBucket.grantRead(fileStatusLambda);
-      console.log(`Granting ${userUploadLambda.functionName} PDF-PDF Bucket PUT permissions.`);
+      console.log(`Granting PDF-PDF Bucket PUT/READ permissions.`);
     }
     if (htmlBucket) {
       htmlBucket.grantPut(userUploadLambda);
       htmlBucket.grantRead(userDownloadLambda);
       htmlBucket.grantRead(fileStatusLambda);
-      console.log(`Granting ${userUploadLambda.functionName} PDF-HTML Bucket PUT permissions.`);
+      console.log(`Granting PDF-PDF Bucket PUT/READ permissions.`);
     }
 
     // ------------------- Lambda Function API Gateways -------------------
@@ -346,7 +347,7 @@ export class CdkBackendStack extends cdk.Stack {
       description: 'API for authentication and file upload signing lambdas.',
       endpointTypes: [apigateway.EndpointType.REGIONAL],
       defaultCorsPreflightOptions: {
-        allowOrigins: [appUrl, 'http://localhost:3000'],
+        allowOrigins: [appUrl, customUrl],
         allowMethods: ['GET', 'POST', 'OPTIONS'],
         allowHeaders: ['Content-Type, Authorization'],
         allowCredentials: true,
@@ -418,13 +419,11 @@ export class CdkBackendStack extends cdk.Stack {
     if (PDF_TO_HTML_BUCKET) {
       mainBranch.addEnvironment('REACT_APP_HTML_BUCKET_NAME', PDF_TO_HTML_BUCKET);
     }
-    
+
     mainBranch.addEnvironment('REACT_APP_HOSTED_UI_URL', appUrl);
     mainBranch.addEnvironment('REACT_APP_DOMAIN_PREFIX', domainPrefix);
-
     mainBranch.addEnvironment('REACT_APP_API_BASE', pdfRemediationAPI.url);
-    
-   
+
     // --------------------------- Outputs ------------------------------
     new cdk.CfnOutput(this, 'AmplifyAppId', {
       value: amplifyApp.appId,
