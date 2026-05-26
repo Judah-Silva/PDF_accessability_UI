@@ -2,7 +2,6 @@ import { useCallback } from 'react';
 import { useAuthContext } from '../context/AuthContext';
 import { isTokenExpired } from '../utilities/tokenUtils';
 import { SESSION_TOKEN_KEY } from '../utilities/constants';
-import { useAuth } from 'react-oidc-context';
 import { ApiError, defaultMessageForStatus, errorCodeForStatus } from '../utilities/apiError';
 
 export function useApiClient() {
