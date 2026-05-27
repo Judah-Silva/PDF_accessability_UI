@@ -86,7 +86,7 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
             <Box display="flex" alignItems="center" marginBottom={2}>
               <DocumentScannerIcon fontSize="large" color="primary" />
               <Typography variant="h6" fontWeight="bold" sx={{ marginLeft: 1 }}>
-                Document Requirements
+                Using the PDF Remediation Tool
               </Typography>
             </Box>
             <Divider sx={{ marginBottom: 2 }} />
@@ -105,7 +105,7 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
             {/* <Typography variant="body2" gutterBottom>
               - Do not <strong>bulk upload</strong> documents.
             </Typography> */}
-            <Typography variant="body2" gutterBottom>
+            {/* <Typography variant="body2" gutterBottom>
               - Complete remediation for <strong>one set of documents</strong> before adding a new one.
             </Typography>
             <Typography variant="body2" gutterBottom>
@@ -113,6 +113,18 @@ const LeftNav = ({ isCollapsed, setIsCollapsed, mobileOpen, setMobileOpen }) => 
             </Typography>
             <Typography variant="body2" gutterBottom>
               - This solution does not remediate for <strong>fillable forms and color selection/contrast for people with color blindness</strong>.
+            </Typography> */}
+            <Typography variant="body2" gutterBottom>
+              - The PDF Remediation Tool will take your PDF documents and convert them to meet accessibility standards.
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              - First, choose an output format, PDF to PDF or PDF to HTML. The PDF Remediation Tool only works with PDF documents you upload. Currently, the Tool does not remediate fillable forms or color selection/contrast.
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              - Drag and drop your PDF to the box or click the Upload PDFs button to open a folder on your computer.
+            </Typography>
+            <Typography variant="body2" gutterBottom>
+              - Complete remediation for one set of documents before adding a new one.
             </Typography>
           </CardContent>
         </Card>
