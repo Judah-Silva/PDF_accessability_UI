@@ -28,7 +28,7 @@ export const handler = async (event) => {
 
   try {
     const publicKey = await importSPKI(process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n'), 'RS256');
-    const { payload } = await jwtVerify(access_token, publicKey, {
+    const { payload } = await jwtVerify(accessToken, publicKey, {
       issuer: process.env.JWT_ISSUER,
       audience: process.env.JWT_AUDIENCE,
     });

@@ -38,7 +38,7 @@ export const handler = async (event) => {
       audience: process.env.JWT_AUDIENCE,
     }));
   } catch (err) {
-    console.log('Invalid token in request.')
+    console.log('Invalid token in request: ', err.message);
     return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid token' }) };
   }
   
